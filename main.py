@@ -3,17 +3,19 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.redis import RedisStorage
 from redis.asyncio import Redis
 
-from config import BOT_TOKEN, REDIS_URL
+from config import Config
 
 async def main():
     redis = Redis(
-        REDIS_URL,
+        Config.REDIS_HOST,
+        Config.REDIS_PORT,
+        Config.REDIS_DB,
         encoding="utf-8",
         decode_responses=True
     )
     storage = RedisStorage(redis=redis)
     
-    bot = Bot(token=BOT_TOKEN)
+    bot = Bot(token=Config.BOT_TOKEN)
     dp = Dispatcher(storage=storage)
     
     await dp.start_polling(bot)
