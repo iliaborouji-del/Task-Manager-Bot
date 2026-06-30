@@ -1,12 +1,14 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-markup = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton(text="➕ اضافه کردن وظیفه"),
-         KeyboardButton(text="📋 نمایش وظیفه‌ها")]
-    ],
-    resize_keyboard=True
-)
+def create_main_menu_keyboard():
+    markup = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="➕ اضافه کردن وظیفه"),
+            KeyboardButton(text="📋 نمایش وظیفه‌ها")]
+        ],
+        resize_keyboard=True
+    )
+    return markup
 
 start_text =  """
 به ربات مدیریت وظایف شخصی خودت خوش اومدی 👋
