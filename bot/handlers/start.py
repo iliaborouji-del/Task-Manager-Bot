@@ -1,8 +1,8 @@
 from aiogram import filters, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
-from states.start import BotStates
-from keyboards.start import markup, start_text
+from bot.states.start import BotStates
+from bot.keyboards.start import markup, start_text
 
 router = Router()
 
