@@ -2,7 +2,8 @@ from aiogram import filters, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from bot.states.start import BotStates
-from bot.keyboards.start import create_main_menu_keyboard, start_text
+from bot.keyboards.start import create_main_menu_keyboard
+from bot.templates.start import start_text
 
 router = Router()
 
