@@ -5,7 +5,7 @@ async def save_task(session, user_id, data):
         user_id=user_id,
         title=data["title"],
         description=data["description"],
-        prority=data["prority"],
+        priority=data["prority"],
         deadline=data["deadline"],
         status=data["status"],
     )

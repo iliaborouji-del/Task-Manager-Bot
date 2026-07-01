@@ -3,13 +3,14 @@ from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 
 from datetime import datetime
+import jdatetime
 
-from bot.states.start import BotStates
+from bot.states.add_task import AddTaskStates
 
 from bot.templates.add_task import (
     TITLE,
     DESCRIPTION,
-    PRORITY,
+    PRIORITY,
     DEADLINE,
     STATUS,
     SUCCESS
@@ -23,22 +24,22 @@ router = Router()
 @router.message(F.text == "➕ اضافه کردن وظیفه")
 async def add_task_start(message: Message, state: FSMContext):
     await message.answer(TITLE)
-    await state.set_state(BotStates.title)
+    await state.set_state(AddTaskStates.title)
     
-@router.message(BotStates.title)
+@router.message(AddTaskStates.title)
 async def get_title(message: Message, state: FSMContext):
     await state.update_data(title=message.text)
     await message.answer(DESCRIPTION)
-    await state.set_state(BotStates.description)
+    await state.set_state(AddTaskStates.description)
     
-@router.message(BotStates.description)
+@router.message(AddTaskStates.description)
 async def get_description(message: Message, state: FSMContext):
     await state.update_data(description=message.text)
-    await message.answer(PRORITY)
-    await state.set_state(BotStates.prority)
+    await message.answer(PRIORITY)
+    await state.set_state(AddTaskStates.priority)
     
-@router.message(BotStates.prority)
-async def get_prority(message: Message, state: FSMContext):
+@router.message(AddTaskStates.priority)
+async def get_priority(message: Message, state: FSMContext):
     if message.text not in [
         "زیاد",
         "متوسط",
@@ -47,17 +48,20 @@ async def get_prority(message: Message, state: FSMContext):
         await message.answer(text="لطفا یکی از گزینه ها را وارد کنید.")
         return
     
-    await state.update_data(prority=message.text)
+    await state.update_data(priority=message.text)
     await message.answer(DEADLINE)
-    await state.set_state(BotStates.deadline)
+    await state.set_state(AddTaskStates.deadline)
     
-@router.message(BotStates.deadline)
+@router.message(AddTaskStates.deadline)
 async def get_deadline(message: Message, state: FSMContext):
     try:
-        deadline = datetime.strptime(
+        deadline_jalali = jdatetime.datetime.strptime(
             message.text,
-            "%Y-%m-%d %H-%M"
+            "%Y-%m-%d %H:%M"
         )
+        
+        deadline = deadline_jalali.togregorian()
+        
     except ValueError:
         await message.answer(
             "مثال شکل صحیح ورودی:\n\n"
@@ -65,14 +69,15 @@ async def get_deadline(message: Message, state: FSMContext):
         )
         return
     
-    await state.update_data(deadline=message.text)
+    await state.update_data(deadline=deadline)
     await message.answer(STATUS)
-    await state.set_state(BotStates.status)
+    await state.set_state(AddTaskStates.status)
     
-@router.message(BotStates.status)
+@router.message(AddTaskStates.status)
 async def get_status(message: Message, state: FSMContext):
     if message.text not in [
         "انجام شده",
+        "در حال انجام",
         "انجام نشده"
     ]:
         await message.answer("لطفا یکی از وضعیت ها را انتخاب کنید.")

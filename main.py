@@ -5,6 +5,7 @@ from redis.asyncio import Redis
 
 from config import Config
 from bot.handlers.start import router as start
+from bot.handlers.add_task import router as add_task
 
 redis = Redis(
     host=Config.REDIS_HOST,
@@ -19,6 +20,7 @@ bot = Bot(token=Config.BOT_TOKEN)
 dp = Dispatcher(storage=storage)
 
 dp.include_router(start)
+dp.include_router(add_task)
     
 async def main():
     await dp.start_polling(bot)
