@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from config import Config
 from bot.handlers.start import router as start
 from bot.handlers.add_task import router as add_task
+from bot.database.connection import create_db
 
 redis = Redis(
     host=Config.REDIS_HOST,
@@ -27,6 +28,7 @@ dp.include_router(start)
 dp.include_router(add_task)
     
 async def main():
+    await create_db()
     await dp.start_polling(bot)
     
 if __name__=='__main__':

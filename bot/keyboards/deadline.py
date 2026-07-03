@@ -1,64 +1,95 @@
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from datetime import datetime
 import jdatetime
 
-months = [
-    "فروردین",
-    "اردیبهشت",
-    "خرداد",
-    "تیر",
-    "مرداد",
-    "شهریور",
-    "مهر",
-    "آبان",
-    "آذر",
-    "دی",
-    "بهمن",
-    "اسفند"
-]
 
-def create_deadline_keyboard_year():
-    builder = InlineKeyboardBuilder()
+def create_deadline_keyboard_year() -> InlineKeyboardMarkup:
+    yaers = [1405, 1406, 1407, 1408]
     
-    for year in range(1405, 1409):
-        builder.button(
-            text=str(year),
-            callback_data=f"year:{year}"
+    keyboard = []
+    row = []
+    
+    for year in yaers:
+        row.append(
+            InlineKeyboardButton(
+                text=str(year),
+                callback_data=f"year:{year}"
+            )
         )
         
-    builder.adjust(2)
-    return builder.as_markup()
+        if len(row) == 2:
+            keyboard.append(row)
+            row = []
+    if row:
+        keyboard.append(row)
+        
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-def create_deadline_keyboard_month():
-    builder = InlineKeyboardBuilder()
+def create_deadline_keyboard_month() -> InlineKeyboardMarkup:
+    months = [
+        "فروردین","اردیبهشت","خرداد",
+        "تیر","مرداد","شهریور",
+        "مهر","آبان","آذر",
+        "دی","بهمن","اسفند"
+    ]
     
-    for i, month in enumerate(months, start=1):
-        builder.button(
-            text=str(month),
-            callback_data=f"month:{i}"
+    keyboard = []
+    row = []
+    
+    for i, name in enumerate(months, start=1):
+        row.append(
+            InlineKeyboardButton(
+                text=name,
+                callback_data=f"month:{i}"
+            )
         )
         
-    builder.adjust(3)
-    return builder.as_markup()
+        if len(row) == 3:
+            keyboard.append(row)
+            row = []
+    if row:
+        keyboard.append(row)
+        
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-def days(year: int, month: int) -> int:
-    if month <= 6:
+def get_days(year: int, month: int) -> int:
+    if month in [1,2,3,4,5,6]:
         return 31
-    elif month <= 11:
+    if month in [7,8,9,10,11]:
         return 30
-    
-    return 30 if jdatetime.date(year, 1, 1).isleap() else 29
+    if month == 12:
+        try:
+            jdatetime.date(year, 12, 30)
+            return 30
+        except:
+            return 29
 
-def create_deadline_keyboard_days(year: int, month: int):
-    builder = InlineKeyboardBuilder()
+def create_deadline_keyboard_days(year: int, month: int) -> InlineKeyboardMarkup:
+    days = get_days(year, month)
     
-    days = days(year, month)
+    keyboard = []
+    row = []
     
     for day in range(1, days + 1):
-        builder.button(
-            text=f"{day:02}",
-            callback_data=f"day:{day}"
+        row.append(
+            InlineKeyboardButton(
+                text=str(day),
+                callback_data=f"day:{day}"
+            )
         )
         
-    builder.adjust(7)
-    return builder.as_markup()
+        if len(row) == 7:
+            keyboard.append(row)
+            row = []
+            
+    if row:
+        while len(row) < 7:
+            row.append(
+                InlineKeyboardButton(
+                    text=" ",
+                    callback_data=None
+                )
+            )
+        keyboard.append(row)
+        
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)

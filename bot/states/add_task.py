@@ -11,3 +11,14 @@ class AddTaskStates(StatesGroup):
     deadline = State()
     
     status = State()
+    
+class Deadline(StatesGroup):
+    year = State()
+    
+    month = State()
+    
+    day = State()
+    
+    hour = State()
+    
+    minute = State()

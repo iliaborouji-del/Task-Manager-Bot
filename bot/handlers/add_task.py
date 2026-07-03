@@ -5,8 +5,9 @@ from aiogram.fsm.context import FSMContext
 from datetime import datetime
 import jdatetime
 
-from bot.states.add_task import AddTaskStates
+from bot.states.add_task import AddTaskStates, Deadline
 from bot.keyboards.priority import create_priority_keyboard
+from bot.keyboards.status import create_status_keyboard
 from bot.keyboards.deadline import (
     create_deadline_keyboard_days,
     create_deadline_keyboard_month,
@@ -54,62 +55,92 @@ async def get_priority(message: Message, state: FSMContext):
         return
     
     await state.update_data(priority=message.text)
+    await state.set_state(Deadline.year)
     await message.answer(text="سال را انتخاب کنید:", reply_markup=create_deadline_keyboard_year())
-    await state.set_state(AddTaskStates.deadline)
     
-@router.callback_query(AddTaskStates.deadline, F.data.startswith("year:"))
+@router.callback_query(Deadline.year, F.data.startswith("year:"))
 async def get_year(call: CallbackQuery, state: FSMContext):
     year = int(call.data.split(":")[1])
-
     await state.update_data(year=year)
     
-    await call.message.answer(text="ماه را انتخاب کنید:", reply_markup=create_deadline_keyboard_month())
-    
+    await state.set_state(Deadline.month)
+    await call.message.edit_text(text="ماه را انتخاب کنید:", reply_markup=create_deadline_keyboard_month())
     await call.answer()
     
-@router.callback_query(AddTaskStates.deadline, F.data.startswith("month:"))
+@router.callback_query(Deadline.month, F.data.startswith("month:"))
 async def get_month(call: CallbackQuery, state: FSMContext):
-    
-    data = await state.get_data()
-    
-    year = data["year"]
-    
     month = int(call.data.split(":")[1])
-    
     await state.update_data(month=month)
     
-    await call.message.answer(text="روز را انتخاب کنید:", reply_markup=create_deadline_keyboard_days(year, month))
+    data = await state.get_data()
+    year = data["year"]
     
+    await state.set_state(Deadline.day)
+    await call.message.edit_text(text="روز را انتخاب کنید:", reply_markup=create_deadline_keyboard_days(year, month))
     await call.answer()
     
-@router.message(AddTaskStates.deadline, F.data.startswith("day:"))
-async def get_year(message: Message, state: FSMContext, call: CallbackQuery):
+@router.callback_query(Deadline.day, F.data.startswith("day:"))
+async def get_day(call: CallbackQuery, state: FSMContext):
     day = int(call.data.split(":")[1])
-    
     await state.update_data(day=day)
+    
+    await state.set_state(Deadline.hour)
+    await call.message.edit_text(text="ساعت را وارد کنید(مثال:18):")
+    await call.answer()
+    
+@router.message(Deadline.hour)
+async def get_hour(message: Message, state: FSMContext):
+    try:
+        hour = int(message.text)
+        if not (0 <= hour <= 23):
+            raise ValueError
+    except:
+        await message.answer(text="ساعت باید بین 0 تا 23 باشد.")
+        return
+    
+    await state.update_data(hour=hour)
+    await state.set_state(Deadline.minute)
+    await message.answer(text="دقیقه را وارد کنید(مثال: 05):")
+    
+@router.message(Deadline.minute)
+async def get_minute(message: Message, state: FSMContext):
+    try: 
+        minute = int(message.text)
+        if not (0 <= minute <= 59):
+            raise ValueError
+    except:
+        await message.answer("دقیقه باید بین 0 تا 59 باشد.")
+        return
+    
+    await state.update_data(minute=minute)
     
     data = await state.get_data()
     
     jalali_date = jdatetime.datetime(
         year=data["year"],
         month=data["month"],
-        day=data["day"]
+        day=data["day"],
+        hour=data["hour"],
+        minute=data["minute"]
     )
     
-    deadline = jalali_date.togregorian()
+    deadline_dt = jalali_date.togregorian()
+    deadline_str = deadline_dt.strftime("%Y-%m-%d %H:%M")
+    await state.update_data(deadline=deadline_str)
     
-    await message.answer(text=deadline)
+    jalali_text = f"{data['year']}/{data['month']}/{data['day']}  {data['hour']}:{data['minute']}"
     
-    await state.update_data(deadline=deadline)
-    await message.answer(STATUS)
+    await message.answer(text=f"ددلاین ثبت شد:\n\n {jalali_text}")
+    
+    await message.answer(STATUS, reply_markup=create_status_keyboard())
     await state.set_state(AddTaskStates.status)
     
 @router.message(AddTaskStates.status)
 async def get_status(message: Message, state: FSMContext):
     if message.text not in [
-        "انجام شده",
-        "در حال انجام",
-        "انجام نشده"
+        "انجام شده✅",
+        "در حال انجام⏳",
+        "انجام نشده❌"
     ]:
         await message.answer("لطفا یکی از وضعیت ها را انتخاب کنید.")
         return
