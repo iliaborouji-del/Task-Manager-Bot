@@ -1,8 +1,21 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 import jdatetime
 
+#----------priority----------
+def create_priority_keyboard():
+    markup = ReplyKeyboardMarkup(
+        keyboard=[
+                [KeyboardButton(text="زیاد🔴"),
+                KeyboardButton(text="متوسط🟡"),
+                KeyboardButton(text="کم🟢")],
+                [KeyboardButton(text="لغو❌")]
+        ],
+        resize_keyboard=True
+    )
+    return markup
 
+#-----------deadline----------
 def create_deadline_keyboard_year() -> InlineKeyboardMarkup:
     yaers = [1405, 1406, 1407, 1408]
     
@@ -22,7 +35,7 @@ def create_deadline_keyboard_year() -> InlineKeyboardMarkup:
             row = []
     if row:
         keyboard.append(row)
-        
+    
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 def create_deadline_keyboard_month() -> InlineKeyboardMarkup:
@@ -49,7 +62,7 @@ def create_deadline_keyboard_month() -> InlineKeyboardMarkup:
             row = []
     if row:
         keyboard.append(row)
-        
+    
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 def get_days(year: int, month: int) -> int:
@@ -91,5 +104,29 @@ def create_deadline_keyboard_days(year: int, month: int) -> InlineKeyboardMarkup
                 )
             )
         keyboard.append(row)
-        
+
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+#----------status----------
+def create_status_keyboard():
+    markup = ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text="انجام شده✅"),
+                KeyboardButton(text="در حال انجام⏳"),
+                KeyboardButton(text="انجام نشده⭕")
+            ],
+            [KeyboardButton(text="لغو❌")]
+        ],
+        resize_keyboard=True
+    )
+    return markup
+
+#----------cancel---------
+def create_cancel_keyboard():
+    markup = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="لغو❌")]
+        ]
+    )
+    return markup

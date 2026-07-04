@@ -1,23 +1,25 @@
 from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
+from aiogram.filters import StateFilter
 
 from datetime import datetime
 import jdatetime
 
+from bot.keyboards.start import create_main_menu_keyboard
 from bot.states.add_task import AddTaskStates, Deadline
-from bot.keyboards.priority import create_priority_keyboard
-from bot.keyboards.status import create_status_keyboard
-from bot.keyboards.deadline import (
-    create_deadline_keyboard_days,
+from bot.keyboards.add_task import (
+    create_priority_keyboard,
+    create_deadline_keyboard_year,
     create_deadline_keyboard_month,
-    create_deadline_keyboard_year
+    create_deadline_keyboard_days,
+    create_status_keyboard,
+    create_cancel_keyboard
 )
 from bot.templates.add_task import (
     TITLE,
     DESCRIPTION,
     PRIORITY,
-    DEADLINE,
     STATUS,
     SUCCESS
 )
@@ -27,15 +29,20 @@ from bot.database.add_task import save_task
 
 router = Router()
 
+@router.message(StateFilter("*"), F.text == "لغو❌")
+async def cancel(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer(text="لغو شد.", reply_markup=create_main_menu_keyboard())
+
 @router.message(F.text == "➕ اضافه کردن وظیفه")
 async def add_task_start(message: Message, state: FSMContext):
-    await message.answer(TITLE)
+    await message.answer(TITLE, reply_markup=create_cancel_keyboard())
     await state.set_state(AddTaskStates.title)
     
 @router.message(AddTaskStates.title)
 async def get_title(message: Message, state: FSMContext):
     await state.update_data(title=message.text)
-    await message.answer(DESCRIPTION)
+    await message.answer(DESCRIPTION, reply_markup=create_cancel_keyboard())
     await state.set_state(AddTaskStates.description)
     
 @router.message(AddTaskStates.description)
@@ -57,6 +64,7 @@ async def get_priority(message: Message, state: FSMContext):
     await state.update_data(priority=message.text)
     await state.set_state(Deadline.year)
     await message.answer(text="سال را انتخاب کنید:", reply_markup=create_deadline_keyboard_year())
+    await message.edit_text(text="سال را انتخاب کنید:", reply_markup=create_cancel_keyboard())
     
 @router.callback_query(Deadline.year, F.data.startswith("year:"))
 async def get_year(call: CallbackQuery, state: FSMContext):
@@ -65,6 +73,7 @@ async def get_year(call: CallbackQuery, state: FSMContext):
     
     await state.set_state(Deadline.month)
     await call.message.edit_text(text="ماه را انتخاب کنید:", reply_markup=create_deadline_keyboard_month())
+    await call.message.edit_text(text="ماه را انتخاب کنید:", reply_markup=create_cancel_keyboard())
     await call.answer()
     
 @router.callback_query(Deadline.month, F.data.startswith("month:"))
@@ -77,6 +86,7 @@ async def get_month(call: CallbackQuery, state: FSMContext):
     
     await state.set_state(Deadline.day)
     await call.message.edit_text(text="روز را انتخاب کنید:", reply_markup=create_deadline_keyboard_days(year, month))
+    await call.message.edit_text(text="روز را انتخاب کنید:", reply_markup=create_cancel_keyboard())
     await call.answer()
     
 @router.callback_query(Deadline.day, F.data.startswith("day:"))
@@ -85,7 +95,7 @@ async def get_day(call: CallbackQuery, state: FSMContext):
     await state.update_data(day=day)
     
     await state.set_state(Deadline.hour)
-    await call.message.edit_text(text="ساعت را وارد کنید(مثال:18):")
+    await call.message.edit_text(text="ساعت را وارد کنید(مثال:18):", reply_markup=create_cancel_keyboard())
     await call.answer()
     
 @router.message(Deadline.hour)
@@ -100,7 +110,7 @@ async def get_hour(message: Message, state: FSMContext):
     
     await state.update_data(hour=hour)
     await state.set_state(Deadline.minute)
-    await message.answer(text="دقیقه را وارد کنید(مثال: 05):")
+    await message.answer(text="دقیقه را وارد کنید(مثال: 05):", reply_markup=create_cancel_keyboard())
     
 @router.message(Deadline.minute)
 async def get_minute(message: Message, state: FSMContext):
@@ -157,6 +167,6 @@ async def get_status(message: Message, state: FSMContext):
         data=data
     )
     
-    await message.answer(SUCCESS)
+    await message.answer(SUCCESS, reply_markup=create_main_menu_keyboard())
     
     await state.clear()
