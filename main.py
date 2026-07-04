@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from config import Config
 from bot.handlers.start import router as start
 from bot.handlers.add_task import router as add_task
+from bot.handlers.show_tasks import router as show_tasks
 from bot.database.connection import create_db
 
 redis = Redis(
@@ -26,6 +27,7 @@ dp = Dispatcher(storage=storage)
 
 dp.include_router(start)
 dp.include_router(add_task)
+dp.include_router(show_tasks)
     
 async def main():
     await create_db()

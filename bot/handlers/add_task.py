@@ -2,8 +2,6 @@ from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import StateFilter
-
-from datetime import datetime
 import jdatetime
 
 from bot.keyboards.start import create_main_menu_keyboard
@@ -33,6 +31,12 @@ router = Router()
 async def cancel(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(text="لغو شد.", reply_markup=create_main_menu_keyboard())
+    
+router.callback_query(StateFilter("*"), F.data == "cancel")
+async def cancel_2(call: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await call.message.answer(text="لغو شد.", reply_markup=create_main_menu_keyboard())
+    await call.answer()
 
 @router.message(F.text == "➕ اضافه کردن وظیفه")
 async def add_task_start(message: Message, state: FSMContext):
@@ -64,7 +68,6 @@ async def get_priority(message: Message, state: FSMContext):
     await state.update_data(priority=message.text)
     await state.set_state(Deadline.year)
     await message.answer(text="سال را انتخاب کنید:", reply_markup=create_deadline_keyboard_year())
-    await message.edit_text(text="سال را انتخاب کنید:", reply_markup=create_cancel_keyboard())
     
 @router.callback_query(Deadline.year, F.data.startswith("year:"))
 async def get_year(call: CallbackQuery, state: FSMContext):
@@ -73,7 +76,6 @@ async def get_year(call: CallbackQuery, state: FSMContext):
     
     await state.set_state(Deadline.month)
     await call.message.edit_text(text="ماه را انتخاب کنید:", reply_markup=create_deadline_keyboard_month())
-    await call.message.edit_text(text="ماه را انتخاب کنید:", reply_markup=create_cancel_keyboard())
     await call.answer()
     
 @router.callback_query(Deadline.month, F.data.startswith("month:"))
@@ -86,7 +88,6 @@ async def get_month(call: CallbackQuery, state: FSMContext):
     
     await state.set_state(Deadline.day)
     await call.message.edit_text(text="روز را انتخاب کنید:", reply_markup=create_deadline_keyboard_days(year, month))
-    await call.message.edit_text(text="روز را انتخاب کنید:", reply_markup=create_cancel_keyboard())
     await call.answer()
     
 @router.callback_query(Deadline.day, F.data.startswith("day:"))
@@ -95,7 +96,7 @@ async def get_day(call: CallbackQuery, state: FSMContext):
     await state.update_data(day=day)
     
     await state.set_state(Deadline.hour)
-    await call.message.edit_text(text="ساعت را وارد کنید(مثال:18):", reply_markup=create_cancel_keyboard())
+    await call.message.answer(text="ساعت را وارد کنید(مثال:18):", reply_markup=create_cancel_keyboard())
     await call.answer()
     
 @router.message(Deadline.hour)
@@ -150,7 +151,7 @@ async def get_status(message: Message, state: FSMContext):
     if message.text not in [
         "انجام شده✅",
         "در حال انجام⏳",
-        "انجام نشده❌"
+        "انجام نشده⭕"
     ]:
         await message.answer("لطفا یکی از وضعیت ها را انتخاب کنید.")
         return

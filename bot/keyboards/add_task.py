@@ -36,6 +36,7 @@ def create_deadline_keyboard_year() -> InlineKeyboardMarkup:
     if row:
         keyboard.append(row)
     
+    keyboard.append([InlineKeyboardButton(text="لغو❌", callback_data="cancel")])
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 def create_deadline_keyboard_month() -> InlineKeyboardMarkup:
@@ -63,6 +64,7 @@ def create_deadline_keyboard_month() -> InlineKeyboardMarkup:
     if row:
         keyboard.append(row)
     
+    keyboard.append([InlineKeyboardButton(text="لغو❌", callback_data="cancel")])
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 def get_days(year: int, month: int) -> int:
@@ -105,6 +107,7 @@ def create_deadline_keyboard_days(year: int, month: int) -> InlineKeyboardMarkup
             )
         keyboard.append(row)
 
+    keyboard.append([InlineKeyboardButton(text="لغو❌", callback_data="cancel")])
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 #----------status----------
