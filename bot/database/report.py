@@ -7,7 +7,7 @@ from bot.database.models import Tasks
 def get_date_range(report_type: str):
     now = datetime.utcnow()
     
-    if report_type == "weeklt":
+    if report_type == "weekly":
         start = now - timedelta(days=7)
         
     elif report_type == "monthly":
@@ -69,13 +69,13 @@ async def get_overdue_tasks(session, user_id, start: datetime, end: datetime):
     return result.scalars().all()
 
 #----- completion_rate -----
-async def calc_completion_rate(total: int, completed: int):
+def calc_completion_rate(total: int, completed: int):
     if total == 0:
         return 0
     return round((completed / total) * 100)
 
 #----- on time -----
-async def calc_on_time(completed_tasks):
+def calc_on_time(completed_tasks):
     if not completed_tasks:
         return 0
     
@@ -94,7 +94,7 @@ async def get_most_active_days(session, user_id, start: datetime, end: datetime)
     if not dates:
         return None, 0
     
-    counter = Counter()
+    counter = Counter(dates)
     day, count = counter.most_common(1)[0]
     
     return day, count
@@ -113,4 +113,4 @@ async def get_next_deadline(session, user_id):
         Tasks.deadline > now
     ).order_by(Tasks.deadline.asc()))
     
-    return result.scalars().all()
+    return result.scalars().first()

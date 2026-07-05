@@ -1,6 +1,6 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-def create_report_ketboard():
+def create_report_keyboard():
     markup = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="هفتگی📆"),

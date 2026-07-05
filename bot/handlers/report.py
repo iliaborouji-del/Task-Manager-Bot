@@ -1,4 +1,5 @@
 import jdatetime
+from datetime import datetime
 from aiogram import F, Router
 from aiogram.types import Message
 from bot.keyboards.report import create_report_keyboard
@@ -42,12 +43,15 @@ async def show_report(message: Message):
     doing_tasks = await get_in_progress_tasks(session, user_id, start, end)
     not_done_tasks = await get_not_done_tasks(session, user_id, start, end)
     overdue_tasks = await get_overdue_tasks(session, user_id, start, end)
-    completion_rate = await calc_completion_rate(len(total_tasks), len(completed_tasks))
-    on_time = await calc_on_time(completion_rate)
+    
+    completion_rate = calc_completion_rate(len(total_tasks), len(completed_tasks))
+    on_time = calc_on_time(completion_rate)
+    
     active_day, active_count = await get_most_active_days(session, user_id, start, end)
     next_deadline = await get_next_deadline(session, user_id)
+    
     active_date = [task.created_at.date() for task in total_tasks]
-    idle_days_count = get_idle_days(start, end, active_date)
+    idle_days_count = await get_idle_days(start, end, active_date)
     
     if active_day:
         jalali_active = jdatetime.date.fromgregorian(date=active_day)
@@ -56,8 +60,20 @@ async def show_report(message: Message):
         active_day_text = "_"
         
     if next_deadline:
-        jalali_deadline = jdatetime.datetime.fromgregorian(datetime=next_deadline.deadline)
-        next_deadline_text = jalali_deadline.strftime("%Y-%m-%d  %H:%M")
+        try:
+            deadline = datetime.strptime(
+                next_deadline.deadline,
+                "%Y-%m-%d %H:%M"
+            )
+
+            jalali_deadline = jdatetime.datetime.fromgregorian(
+                datetime=deadline
+            )
+
+            next_deadline_text = jalali_deadline.strftime("%Y-%m-%d %H:%M")
+
+        except ValueError:
+            next_deadline_text = "فرمت ددلاین نامعتبر است."
     else:
         next_deadline_text = "_"
         
