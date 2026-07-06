@@ -19,6 +19,4 @@ class Deadline(StatesGroup):
     
     day = State()
     
-    hour = State()
-    
-    minute = State()
+    time = State()

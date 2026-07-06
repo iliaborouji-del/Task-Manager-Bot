@@ -5,7 +5,8 @@ def create_report_keyboard():
         keyboard=[
             [KeyboardButton(text="هفتگی📆"),
              KeyboardButton(text="ماهانه📆"),
-             KeyboardButton(text="سالانه📆")]
+             KeyboardButton(text="سالانه📆")],
+            [KeyboardButton(text="بازگشت↪️")]
         ]
     )
     return markup

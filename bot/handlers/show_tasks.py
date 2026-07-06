@@ -1,4 +1,5 @@
 import jdatetime
+from datetime import datetime
 from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery
 from bot.database.connection import get_session
@@ -22,18 +23,22 @@ async def show_tasks(message: Message):
     for task in tasks:
         jalali_created = jdatetime.datetime.fromgregorian(datetime=task.created_at)
         created_text = jalali_created.strftime("%Y-%m%d  %H:%M")
-        
-        jalali_deadline = jdatetime.datetime.fromgregorian(datetime=task.deadline)
-        deadline_text = jalali_deadline.strftime("%Y-%m%d  %H:%M")
-        
+        try:
+            deadline_dt = datetime.strptime(task.deadline, "%Y-%m-%d  %H-%M")
+            
+            jalali_deadline = jdatetime.datetime.fromgregorian(datetime=deadline_dt)
+            deadline_text = jalali_deadline.strftime("%Y-%m%d  %H:%M")
+        except:
+            deadline_text = task.deadline
+            
         text = (
-            f"شناسه: {task.id}\n"
-            f"عنوان: {task.title}\n"
-            f"توضیحات: {task.description}\n"
-            f"اولویت: {task.priority}\n"
-            f"ددلاین(زمان پایان): {deadline_text}\n"
-            f"وضعیت: {task.status}\n"
-            f"اضافه شده در: {created_text}"
+            f"🆔شناسه: {task.id}\n"
+            f"📌عنوان: {task.title}\n"
+            f"📝توضیحات: {task.description}\n"
+            f"📊اولویت: {task.priority}\n"
+            f"⌛ددلاین(زمان پایان): {deadline_text}\n"
+            f"📂وضعیت: {task.status}\n"
+            f"📆اضافه شده در: {created_text}"
         )
         
         await message.answer(
@@ -41,7 +46,7 @@ async def show_tasks(message: Message):
             reply_markup=create_change_status_keyboard(task.id)
         )
         
-@router.callback_query(F.data.startswith)
+@router.callback_query(F.data.startswith("tesk:"))
 async def change_status(call: CallbackQuery):
     _, task_id, new_status = call.data.split(":")
     task_id = int(task_id)

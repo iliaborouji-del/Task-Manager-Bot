@@ -1,9 +1,13 @@
 import jdatetime
+from aiogram.filters import StateFilter
 from datetime import datetime
 from aiogram import F, Router
 from aiogram.types import Message
+from aiogram.fsm.context import FSMContext
 from bot.keyboards.report import create_report_keyboard
+from bot.keyboards.start import create_main_menu_keyboard
 from bot.database.connection import get_session
+from bot.states.report import ReportState
 from bot.database.report import (
     get_total_tasks,
     get_overdue_tasks,
@@ -20,11 +24,17 @@ from bot.database.report import (
 
 router = Router()
 
+@router.message(StateFilter("*"), F.text == "بازگشت↪️")
+async def return_to_menu(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer(text="منوی اصلی", reply_markup=create_main_menu_keyboard())
+
 @router.message(F.text == "گزارش وظایف 📢")
-async def report_message(message: Message):
+async def report_message(message: Message, state: FSMContext):
     await message.answer(text="بازه زمانی را مشخص کنید:", reply_markup=create_report_keyboard())
+    await state.set_state(ReportState.waiting_for_date_range)
     
-@router.message(F.text.in_(["سالانه📆","ماهانه📆","هفتگی📆"]))
+@router.message(ReportState.waiting_for_date_range)
 async def show_report(message: Message):
     if message.text == "هفتگی📆":
         report_type = ("weekly")
@@ -84,7 +94,7 @@ async def show_report(message: Message):
         f"⏳در حال انجام: {len(doing_tasks)}\n"
         f"⭕انجام نشده: {len(not_done_tasks)}\n"
         f"⌛عقب افتاده: {len(overdue_tasks)}\n"
-        "----------"
+        "----------\n"
         f"📈نرخ تکمیل: {completion_rate}%\n"
         f"⏰انجام به موقع: {on_time}%\n"
         f"🔥فعال ترین روز: {active_day_text} ({active_count}وظیفه)\n"

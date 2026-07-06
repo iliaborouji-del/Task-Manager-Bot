@@ -31,12 +31,6 @@ router = Router()
 async def cancel(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(text="لغو شد.", reply_markup=create_main_menu_keyboard())
-    
-router.callback_query(StateFilter("*"), F.data == "cancel")
-async def cancel_2(call: CallbackQuery, state: FSMContext):
-    await state.clear()
-    await call.message.answer(text="لغو شد.", reply_markup=create_main_menu_keyboard())
-    await call.answer()
 
 @router.message(F.text == "➕ اضافه کردن وظیفه")
 async def add_task_start(message: Message, state: FSMContext):
@@ -68,6 +62,7 @@ async def get_priority(message: Message, state: FSMContext):
     await state.update_data(priority=message.text)
     await state.set_state(Deadline.year)
     await message.answer(text="سال را انتخاب کنید:", reply_markup=create_deadline_keyboard_year())
+    await message.answer(text="برای لغو دکمه زیر را بزنید.", reply_markup=create_cancel_keyboard())
     
 @router.callback_query(Deadline.year, F.data.startswith("year:"))
 async def get_year(call: CallbackQuery, state: FSMContext):
@@ -95,35 +90,36 @@ async def get_day(call: CallbackQuery, state: FSMContext):
     day = int(call.data.split(":")[1])
     await state.update_data(day=day)
     
-    await state.set_state(Deadline.hour)
-    await call.message.answer(text="ساعت را وارد کنید(مثال:18):", reply_markup=create_cancel_keyboard())
+    await state.set_state(Deadline.time)
+    await call.message.answer(text="زمان را وارد کنید. مثال: 18:30", reply_markup=create_cancel_keyboard())
     await call.answer()
     
-@router.message(Deadline.hour)
-async def get_hour(message: Message, state: FSMContext):
-    try:
-        hour = int(message.text)
-        if not (0 <= hour <= 23):
-            raise ValueError
-    except:
+@router.message(Deadline.time)
+async def get_time(message: Message, state: FSMContext):
+    time_text = message.text.strip()
+    
+    if len(time_text) != 5 or ":" not in time_text:
+        await message.answer(text="فرمت زمان باید به شکل 00:00 باشد.")
+        return
+    
+    hour_text, minute_text = time_text.split(":")
+    
+    if not (hour_text.isdigit(), minute_text.isdigit()):
+        await message.answer(text="ساعت و دقیقه باید عدد باشند. مثال: 18:30")
+        return
+    
+    hour = int(hour_text)
+    minute = int(minute_text)
+    
+    if not (0 <= hour <= 23):
         await message.answer(text="ساعت باید بین 0 تا 23 باشد.")
         return
     
-    await state.update_data(hour=hour)
-    await state.set_state(Deadline.minute)
-    await message.answer(text="دقیقه را وارد کنید(مثال: 05):", reply_markup=create_cancel_keyboard())
-    
-@router.message(Deadline.minute)
-async def get_minute(message: Message, state: FSMContext):
-    try: 
-        minute = int(message.text)
-        if not (0 <= minute <= 59):
-            raise ValueError
-    except:
-        await message.answer("دقیقه باید بین 0 تا 59 باشد.")
+    if not (0 <= minute <= 59):
+        await message.answer(text="دقیقه باید بین 0 تا 59 باشد.")
         return
     
-    await state.update_data(minute=minute)
+    await state.update_data(hour=hour, minute=minute)
     
     data = await state.get_data()
     
@@ -136,10 +132,10 @@ async def get_minute(message: Message, state: FSMContext):
     )
     
     deadline_dt = jalali_date.togregorian()
-    deadline_str = deadline_dt.strftime("%Y-%m-%d %H:%M")
+    deadline_str = deadline_dt.strftime("%Y-%m-%d  %H:%M")
     await state.update_data(deadline=deadline_str)
     
-    jalali_text = f"{data['year']}/{data['month']}/{data['day']}  {data['hour']}:{data['minute']}"
+    jalali_text = f"{data['year']}/{data['month']:02d}/{data['day']:02d}  {data['hour']:02d}:{data['minute']:02d}"
     
     await message.answer(text=f"ددلاین ثبت شد:\n\n {jalali_text}")
     
