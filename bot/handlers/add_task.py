@@ -2,8 +2,10 @@ from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import StateFilter
+from datetime import datetime, timedelta
 import jdatetime
 
+from celery_app.tasks.deadline_warning import send_deadline_warning
 from bot.keyboards.start import create_main_menu_keyboard
 from bot.states.add_task import AddTaskStates, Deadline
 from bot.keyboards.add_task import (
@@ -155,13 +157,21 @@ async def get_status(message: Message, state: FSMContext):
     await state.update_data(status=message.text)
     
     data = await state.get_data()
-    
     session = await get_session()
-    
     await save_task(
         session=session,
         user_id=message.from_user.id,
         data=data
+    )
+    
+    deadline_str = data["deadline"]
+    deadline_dt = datetime.strptime(deadline_str, "%Y-%m-%d  %H:%M")
+    
+    warning_time = deadline_dt - timedelta(days=1)
+    
+    send_deadline_warning.apply_async(
+        args=[message.from_user.id, data["title"], deadline_str],
+        eta=warning_time
     )
     
     await message.answer(SUCCESS, reply_markup=create_main_menu_keyboard())

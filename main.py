@@ -10,6 +10,8 @@ from bot.handlers.start import router as start
 from bot.handlers.add_task import router as add_task
 from bot.handlers.show_tasks import router as show_tasks
 from bot.handlers.report import router as report
+from bot.handlers.delete_task import router as delete
+from bot.handlers.show_all_tasks import router as all_tasks
 from bot.database.connection import create_db
 
 redis = Redis(
@@ -30,6 +32,8 @@ dp.include_router(start)
 dp.include_router(add_task)
 dp.include_router(show_tasks)
 dp.include_router(report)
+dp.include_router(delete)
+dp.include_router(all_tasks)
     
 async def main():
     await create_db()

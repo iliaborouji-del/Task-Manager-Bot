@@ -5,13 +5,13 @@ from aiogram.types import Message, CallbackQuery
 from bot.database.connection import get_session
 from bot.database.connection import get_session
 from bot.keyboards.show_tasks import create_change_status_keyboard
-from bot.database.show_tesk import show_not_done_tasks
+from bot.database.show_task import show_not_done_tasks
 from sqlalchemy import select
 from bot.database.models import Tasks
 
 router = Router()
 
-@router.message(F.text == "📋 نمایش وظیفه‌ها")
+@router.message(F.text == "📋 نمایش وظایف انجام نشده")
 async def show_tasks(message: Message):
     session = await get_session()
     tasks = await show_not_done_tasks(session=session, user_id=message.from_user.id)

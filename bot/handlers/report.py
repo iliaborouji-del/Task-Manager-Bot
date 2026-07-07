@@ -29,7 +29,7 @@ async def return_to_menu(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(text="منوی اصلی", reply_markup=create_main_menu_keyboard())
 
-@router.message(F.text == "گزارش وظایف 📢")
+@router.message(F.text == "📢 گزارش وظایف")
 async def report_message(message: Message, state: FSMContext):
     await message.answer(text="بازه زمانی را مشخص کنید:", reply_markup=create_report_keyboard())
     await state.set_state(ReportState.waiting_for_date_range)
