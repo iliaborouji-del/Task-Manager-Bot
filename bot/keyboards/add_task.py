@@ -6,9 +6,9 @@ import jdatetime
 def create_priority_keyboard():
     markup = ReplyKeyboardMarkup(
         keyboard=[
-                [KeyboardButton(text="زیاد🔴"),
-                KeyboardButton(text="متوسط🟡"),
-                KeyboardButton(text="کم🟢")],
+                [KeyboardButton(text="زیاد 🔴"),
+                KeyboardButton(text="متوسط 🟡"),
+                KeyboardButton(text="کم 🟢")],
                 [KeyboardButton(text="لغو❌")]
         ],
         resize_keyboard=True
