@@ -20,7 +20,7 @@ SessionLocal = async_sessionmaker(
 )
 
 SyncSessionLocal = sessionmaker(
-    autocemmit=False,
+    autocommit=False,
     autoflush=False,
     bind=sync_engine
 )
@@ -37,7 +37,7 @@ async def create_db():
         
 @asynccontextmanager
 async def session_scope():
-    session = SessionLocal()
+    session = AsyncSession = SessionLocal()
     try:
         yield session
     finally:

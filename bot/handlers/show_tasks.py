@@ -1,9 +1,9 @@
 import jdatetime
-from datetime import datetime
+from datetime import datetime, timezone
 from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery
-from bot.database.connection import session_scope
 from bot.database.delete_task import delete_task_by_id
+from bot.database.connection import session_scope
 from bot.keyboards.show_tasks import create_change_status_keyboard
 from bot.database.show_tasks import show_not_done_tasks
 from sqlalchemy import select
@@ -24,8 +24,7 @@ async def show_tasks(message: Message):
             jalali_created = jdatetime.datetime.fromgregorian(datetime=task.created_at)
             created_text = jalali_created.strftime("%Y/%m/%d  %H:%M")
             try:
-                deadline_dt = datetime.strptime(task.deadline, "%Y-%m-%d  %H-%M")
-                
+                deadline_dt = datetime.strptime(task.deadline, "%Y-%m-%d  %H:%M")
                 jalali_deadline = jdatetime.datetime.fromgregorian(datetime=deadline_dt)
                 deadline_text = jalali_deadline.strftime("%Y/%m/%d  %H:%M")
             except:
@@ -59,13 +58,14 @@ async def change_status(call: CallbackQuery):
             return
         
         task.status = new_status
+        if new_status == "انجام شده ✅":
+            task.completed_at = datetime.now(timezone.utc)
+            
         await session.commit()
         
         await call.message.answer(
             text=f"وضعیت به {new_status} تغییر کرد."
         )
-        if new_status == "انجام شده✅":
-            task.completed_at = datetime.utcnow()
         await call.answer()
     
 @router.callback_query(F.data.startswith("delete:"))

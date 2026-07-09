@@ -1,11 +1,11 @@
 from sqlalchemy import select
-from datetime import datetime, timedelta
-import jdatetime
+from datetime import datetime, timedelta, timezone
+from collections import Counter
 from bot.database.models import Tasks
 
 #----- get_date_range -----
 def get_date_range(report_type: str):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     if report_type == "weekly":
         start = now - timedelta(days=7)
@@ -33,7 +33,7 @@ async def get_completed_tasks(session, user_id: int, start: datetime, end: datet
     result = await session.execute(
         select(Tasks).where(
             Tasks.user_id == user_id,
-            Tasks.status == "انجام شده✅",
+            Tasks.status == "انجام شده ✅",
             Tasks.created_at.between(start, end)
         )
     )
@@ -44,7 +44,7 @@ async def get_in_progress_tasks(session, user_id: int, start: datetime, end: dat
     result = await session.execute(
         select(Tasks).where(
             Tasks.user_id == user_id,
-            Tasks.status == "در حال انجام⏳",
+            Tasks.status == "در حال انجام ⏳",
             Tasks.created_at.between(start, end)
         )
     )
@@ -55,7 +55,7 @@ async def get_not_done_tasks(session, user_id: int, start: datetime, end: dateti
     result = await session.execute(
         select(Tasks).where(
             Tasks.user_id == user_id,
-            Tasks.status == "انجام نشده⭕",
+            Tasks.status == "انجام نشده ⭕",
             Tasks.created_at.between(start, end)
         )
     )
@@ -63,13 +63,12 @@ async def get_not_done_tasks(session, user_id: int, start: datetime, end: dateti
 
 #----- overdue tasks -----
 async def get_overdue_tasks(session, user_id: int, start: datetime, end: datetime):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     result = await session.execute(
         select(Tasks).where(
             Tasks.user_id == user_id,
-            Tasks.status != "انجام شده✅",
-            Tasks.deadline < now,
+            Tasks.status != "انجام شده ✅",
             Tasks.created_at.between(start, end)
         )
     )
@@ -127,7 +126,6 @@ async def get_most_active_days(session, user_id: int, start: datetime, end: date
     if not dates:
         return None, 0
     
-    from collections import Counter
     counter = Counter(dates)
     day, count = counter.most_common(1)[0]
     
@@ -156,6 +154,8 @@ async def get_next_deadline(session, user_id: int):
     now = datetime.now()
     
     for task in tasks:
+        if task.status == "انجام شده ✅":
+            continue
         try:
             deadline_dt = datetime.strptime(task.deadline, "%Y-%m-%d  %H:%M")
         except Exception:

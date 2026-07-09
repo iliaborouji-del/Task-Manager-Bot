@@ -24,7 +24,7 @@ from bot.database.report import (
 
 router = Router()
 
-@router.message(StateFilter("*"), F.text == "بازگشت↪️")
+@router.message(StateFilter("*"), F.text == "بازگشت ↪️")
 async def return_to_menu(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(text="منوی اصلی", reply_markup=create_main_menu_keyboard())
@@ -37,11 +37,11 @@ async def report_message(message: Message, state: FSMContext):
 @router.message(ReportState.waiting_for_date_range)
 async def show_report(message: Message):
     async with session_scope() as session:
-        if message.text == "هفتگی📆":
+        if message.text == "هفتگی 📆":
             report_type = "weekly"
-        elif message.text == "ماهانه📆":
+        elif message.text == "ماهانه 📆":
             report_type = "monthly"
-        elif message.text == "سالانه📆":
+        elif message.text == "سالانه 📆":
             report_type = "yearly"
         else:
             await message.answer(text="لطفا یکی از گزینه ها را انتخاب کنید.")
@@ -100,11 +100,11 @@ async def show_report(message: Message):
             "----------\n"
             f"📈 نرخ تکمیل: {completion_rate}%\n"
             f"⏰ انجام به موقع: {on_time}%\n"
-            f"🔥 فعال ترین روز: {active_day_text} ({active_count}وظیفه)\n"
+            f"🔥 فعال ترین روز: {active_day_text} ({active_count} وظیفه)\n"
             f"😴 روز های بدون فعالیت: {idle_days_count}\n"
             f"⚠️ نزدیک ترین ددلاین: {next_deadline_text}\n"
             "----------\n"
-            "ادامه دهید💪"
+            "ادامه دهید 💪"
         )
         
         await message.answer(text=text)

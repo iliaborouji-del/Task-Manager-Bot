@@ -6,7 +6,8 @@ def create_main_menu_keyboard():
             [KeyboardButton(text="➕ اضافه کردن وظیفه"),
             KeyboardButton(text="📋 نمایش وظایف انجام نشده")],
             [KeyboardButton(text="📢 گزارش وظایف"),
-            KeyboardButton(text="🗂️ نمایش همه وظایف")]
+            KeyboardButton(text="🗂️ نمایش همه وظایف"),
+            KeyboardButton(text="⏳ نمایش وظایف درحال انجام")]
         ],
         resize_keyboard=True
     )

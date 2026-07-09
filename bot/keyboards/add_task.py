@@ -9,7 +9,7 @@ def create_priority_keyboard():
                 [KeyboardButton(text="زیاد 🔴"),
                 KeyboardButton(text="متوسط 🟡"),
                 KeyboardButton(text="کم 🟢")],
-                [KeyboardButton(text="لغو❌")]
+                [KeyboardButton(text="لغو ❌")]
         ],
         resize_keyboard=True
     )
@@ -112,11 +112,11 @@ def create_status_keyboard():
     markup = ReplyKeyboardMarkup(
         keyboard=[
             [
-                KeyboardButton(text="انجام شده✅"),
-                KeyboardButton(text="در حال انجام⏳"),
-                KeyboardButton(text="انجام نشده⭕")
+                KeyboardButton(text="انجام شده ✅"),
+                KeyboardButton(text="در حال انجام ⏳"),
+                KeyboardButton(text="انجام نشده ⭕")
             ],
-            [KeyboardButton(text="لغو❌")]
+            [KeyboardButton(text="لغو ❌")]
         ],
         resize_keyboard=True
     )
@@ -126,7 +126,7 @@ def create_status_keyboard():
 def create_cancel_keyboard():
     markup = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="لغو❌")]
+            [KeyboardButton(text="لغو ❌")]
         ]
     )
     return markup

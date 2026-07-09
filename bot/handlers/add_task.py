@@ -27,7 +27,7 @@ from bot.database.add_task import save_task
 
 router = Router()
 
-@router.message(StateFilter("*"), F.text == "لغو❌")
+@router.message(StateFilter("*"), F.text == "لغو ❌")
 async def cancel(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(text="لغو شد.", reply_markup=create_main_menu_keyboard())
@@ -104,7 +104,7 @@ async def get_time(message: Message, state: FSMContext):
     
     hour_text, minute_text = time_text.split(":")
     
-    if not (hour_text.isdigit(), minute_text.isdigit()):
+    if not (hour_text.isdigit() and minute_text.isdigit()):
         await message.answer(text="ساعت و دقیقه باید عدد باشند. مثال: 18:30")
         return
     
@@ -137,7 +137,7 @@ async def get_time(message: Message, state: FSMContext):
     
     jalali_text = f"{data['year']}/{data['month']:02d}/{data['day']:02d}  {data['hour']:02d}:{data['minute']:02d}"
     
-    await message.answer(text=f"ددلاین ثبت شد:\n\n {jalali_text}")
+    await message.answer(text=f"ددلاین ثبت شد:\n\n{jalali_text}")
     
     await message.answer(STATUS, reply_markup=create_status_keyboard())
     await state.set_state(AddTaskStates.status)
@@ -146,9 +146,9 @@ async def get_time(message: Message, state: FSMContext):
 async def get_status(message: Message, state: FSMContext):
     async with session_scope() as session:
         if message.text not in [
-            "انجام شده✅",
-            "در حال انجام⏳",
-            "انجام نشده⭕"
+            "انجام شده ✅",
+            "در حال انجام ⏳",
+            "انجام نشده ⭕"
         ]:
             await message.answer("لطفا یکی از وضعیت ها را انتخاب کنید.")
             return
