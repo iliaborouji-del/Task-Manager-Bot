@@ -22,7 +22,7 @@ from bot.templates.add_task import (
     SUCCESS
 )
 
-from bot.database.connection import get_session
+from bot.database.connection import session_scope
 from bot.database.add_task import save_task
 
 router = Router()
@@ -144,24 +144,24 @@ async def get_time(message: Message, state: FSMContext):
     
 @router.message(AddTaskStates.status)
 async def get_status(message: Message, state: FSMContext):
-    if message.text not in [
-        "انجام شده✅",
-        "در حال انجام⏳",
-        "انجام نشده⭕"
-    ]:
-        await message.answer("لطفا یکی از وضعیت ها را انتخاب کنید.")
-        return
-    
-    await state.update_data(status=message.text)
-    
-    data = await state.get_data()
-    session = await get_session()
-    await save_task(
-        session=session,
-        user_id=message.from_user.id,
-        data=data
-    )
-    
-    await message.answer(SUCCESS, reply_markup=create_main_menu_keyboard())
-    
-    await state.clear()
+    async with session_scope() as session:
+        if message.text not in [
+            "انجام شده✅",
+            "در حال انجام⏳",
+            "انجام نشده⭕"
+        ]:
+            await message.answer("لطفا یکی از وضعیت ها را انتخاب کنید.")
+            return
+        
+        await state.update_data(status=message.text)
+        
+        data = await state.get_data()
+        await save_task(
+            session=session,
+            user_id=message.from_user.id,
+            data=data
+        )
+        
+        await message.answer(SUCCESS, reply_markup=create_main_menu_keyboard())
+        
+        await state.clear()

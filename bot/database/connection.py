@@ -1,7 +1,8 @@
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from bot.database.models import Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from contextlib import asynccontextmanager
 
 DATABASE_URL = "sqlite+aiosqlite:///tasks.db"
 SYNC_DATABASE_URL = "sqlite:///tasks.db"
@@ -33,3 +34,11 @@ def get_session_sync():
 async def create_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        
+@asynccontextmanager
+async def session_scope():
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        await session.close()

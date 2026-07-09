@@ -17,3 +17,4 @@ class Tasks(Base):
     status: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     reminder_sent: Mapped[bool] = mapped_column(Boolean, default=False)
+    completed_at: Mapped[datetime] = mapped_column(default=None)

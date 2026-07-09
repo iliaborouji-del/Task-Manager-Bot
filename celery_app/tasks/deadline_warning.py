@@ -1,4 +1,3 @@
-from celery_app.celery_config import celery_app
 from celery import shared_task
 from aiogram import Bot
 from config import Config 
