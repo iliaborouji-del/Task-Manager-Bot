@@ -150,7 +150,7 @@ def get_idle_days(start: datetime, end: datetime, active_dates: list):
 #----- next deadline -----
 async def get_next_deadline(session, user_id: int):
     now = datetime.now()
-    result = session.execute(select(Tasks).where(Tasks.user_id == user_id))
+    result = await session.execute(select(Tasks).where(Tasks.user_id == user_id))
     tasks = result.scalars().all()
     nearest = None
     for task in tasks:

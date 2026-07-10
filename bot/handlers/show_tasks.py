@@ -4,7 +4,7 @@ from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery
 from bot.database.delete_task import delete_task_by_id
 from bot.database.connection import session_scope
-from bot.keyboards.show_tasks import create_change_status_keyboard
+from bot.keyboards.show_tasks import create_change_status_keyboard, create_change_status_keyboard_2
 from bot.database.show_tasks import show_not_completed_tasks
 from sqlalchemy import select
 from bot.database.models import Tasks
@@ -52,11 +52,16 @@ async def show_tasks(message: Message):
             except Exception:
                 created_text = str(task.created_at)
                 
+            deadline_text = task.deadline
             parsed_deadline = None
             if  isinstance(task.deadline, str):
                 parsed_deadline = deadline_string(task.deadline)
             elif isinstance(task.deadline, datetime):
-                parsed_deadline = task.deadline if task.deadline.tzinfo else task.deadline.replace(tzinfo=timezone.utc)
+                parsed_deadline = (
+                    task.deadline 
+                    if task.deadline.tzinfo 
+                    else task.deadline.replace(tzinfo=timezone.utc)
+                )
                 
             if parsed_deadline:
                 try:
@@ -102,12 +107,17 @@ async def change_status(call: CallbackQuery):
             created_text = format_jalali_dt(task.created_at)
         except Exception:
             created_text = str(task.created_at)
-                
+        
+        deadline_text = task.deadline
         parsed_deadline = None
         if  isinstance(task.deadline, str):
             parsed_deadline = deadline_string(task.deadline)
         elif isinstance(task.deadline, datetime):
-            parsed_deadline = task.deadline if task.deadline.tzinfo else task.deadline.replace(tzinfo=timezone.utc)
+            parsed_deadline = (
+                task.deadline 
+                if task.deadline.tzinfo 
+                else task.deadline.replace(tzinfo=timezone.utc)
+            )
             
         if parsed_deadline:
             try:
@@ -129,7 +139,7 @@ async def change_status(call: CallbackQuery):
         if new_status == "انجام شده ✅":
             await call.message.edit_text(text=new_text, reply_markup=None)
         else:
-            await call.message.answer(text=new_text, reply_markup=create_change_status_keyboard(task.id))
+            await call.message.edit_text(text=new_text, reply_markup=create_change_status_keyboard_2(task.id))
             
         await call.answer(text="وضعیت با موفقیت تغییر کرد.")
         

@@ -137,7 +137,7 @@ async def get_time(message: Message, state: FSMContext):
     deadline_local = deadline_dt.replace(tzinfo=iran_tz)
     deadline_utc = deadline_local.astimezone(timezone.utc)
 
-    await state.update_data(deadline=deadline_utc)
+    await state.update_data(deadline=deadline_utc.isoformat())
     
     jalali_text = f"{data['year']}/{data['month']:02d}/{data['day']:02d}  {data['hour']:02d}:{data['minute']:02d}"
     
@@ -160,10 +160,13 @@ async def get_status(message: Message, state: FSMContext):
         await state.update_data(status=message.text)
         
         data = await state.get_data()
+        deadline = datetime.fromisoformat(data["deadline"])
+        
         await save_task(
             session=session,
             user_id=message.from_user.id,
-            data=data
+            data=data,
+            deadline=deadline
         )
         
         await message.answer(SUCCESS, reply_markup=create_main_menu_keyboard())
