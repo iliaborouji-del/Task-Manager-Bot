@@ -72,18 +72,18 @@ async def get_overdue_tasks(session, user_id: int, start: datetime, end: datetim
             Tasks.created_at.between(start, end)
         )
     )
-    
     tasks = result.scalars().all()
     overdue = []
-    
     for task in tasks:
         try:
-            deadline_dt = datetime.strptime(task.deadline, "%Y-%m-%d  %H:%M")
+            if isinstance(task.deadline, datetime):
+                deadline_dt = task.deadline if task.deadline.tzinfo else task.deadline.replace(tzinfo=timezone.utc)
+            else:
+                deadline_dt = datetime.strptime(task.deadline, "%Y-%m-%d  %H:%M").replace(tzinfo=timezone.utc)
             if deadline_dt < now:
                 overdue.append(task)
-        except:
+        except Exception:
             continue
-        
     return overdue
 
 #----- completion_rate -----
@@ -96,21 +96,25 @@ def calc_completion_rate(total: int, completed: int):
 def calc_on_time(completed_tasks):
     if not completed_tasks:
         return 0
-    
     on_time_count = 0
-    
+    counted = 0
     for task in completed_tasks:
         try:
-            deadline_dt = datetime.strptime(task.deadline, "%Y-%m-%d  %H:%M")
             if not task.completed_at:
                 continue
+            counted += 1
+            if isinstance(task.deadline , datetime):
+                deadline_dt = task.deadline if task.deadline.tzinfo else task.deadline.replace(tzinfo=timezone.utc)
+            else:
+                deadline_dt = datetime.strptime(task.deadline, "%Y-%m-%d  %H:%M").replace(tzinfo=timezone.utc)
             if task.completed_at <= deadline_dt:
                 on_time_count += 1
-                
         except Exception:
             continue
-        
-    return round((on_time_count / len(completed_tasks)) * 100)
+    if counted == 0:
+        return 0
+    return round((on_time_count / counted) * 100)
+            
 
 #----- get_most_active_day -----
 async def get_most_active_days(session, user_id: int, start: datetime, end: datetime):
@@ -145,24 +149,21 @@ def get_idle_days(start: datetime, end: datetime, active_dates: list):
 
 #----- next deadline -----
 async def get_next_deadline(session, user_id: int):
-    result = await session.execute(
-        select(Tasks).where(Tasks.user_id == user_id)
-    )
-    tasks = result.scalars().all()
-    
-    nearest = None
     now = datetime.now()
-    
+    result = session.execute(select(Tasks).where(Tasks.user_id == user_id))
+    tasks = result.scalars().all()
+    nearest = None
     for task in tasks:
         if task.status == "انجام شده ✅":
             continue
         try:
-            deadline_dt = datetime.strptime(task.deadline, "%Y-%m-%d  %H:%M")
+            if isinstance(task.deadline, datetime):
+                deadline_dt = task.deadline if task.deadline.tzinfo else task.deadline.replace(tzinfo=timezone.utc)
+            else:
+                deadline_dt = datetime.strptime(task.deadline, "%Y-%m-%d  %H:%M").replace(tzinfo=timezone.utc)
         except Exception:
             continue
-        
         if deadline_dt > now:
             if nearest is None or deadline_dt < nearest[0]:
                 nearest = (deadline_dt, task)
-                
     return nearest[1] if nearest else None

@@ -37,7 +37,7 @@ async def create_db():
         
 @asynccontextmanager
 async def session_scope():
-    session = AsyncSession = SessionLocal()
+    session: AsyncSession = SessionLocal()
     try:
         yield session
     finally:

@@ -2,6 +2,7 @@ from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import StateFilter
+from datetime import datetime, timedelta, timezone
 import jdatetime
 
 from bot.keyboards.start import create_main_menu_keyboard
@@ -132,8 +133,11 @@ async def get_time(message: Message, state: FSMContext):
     )
     
     deadline_dt = jalali_date.togregorian()
-    deadline_str = deadline_dt.strftime("%Y-%m-%d  %H:%M")
-    await state.update_data(deadline=deadline_str)
+    iran_tz = timezone(timedelta(hours=3, minutes=30))
+    deadline_local = deadline_dt.replace(tzinfo=iran_tz)
+    deadline_utc = deadline_local.astimezone(timezone.utc)
+
+    await state.update_data(deadline=deadline_utc)
     
     jalali_text = f"{data['year']}/{data['month']:02d}/{data['day']:02d}  {data['hour']:02d}:{data['minute']:02d}"
     
