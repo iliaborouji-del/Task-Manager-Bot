@@ -1,7 +1,7 @@
 import jdatetime
 from datetime import datetime, timezone, timedelta
 from aiogram import F, Router
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InputFile
 from bot.database.delete_task import delete_task_by_id
 from bot.database.connection import session_scope
 from bot.keyboards.show_tasks import (
@@ -9,9 +9,11 @@ from bot.keyboards.show_tasks import (
     create_change_status_keyboard_2,
     create_delete_keyboard
 )
+from qr import make_bale_link, make_payload, generate_qr
 from bot.database.show_tasks import show_not_completed_tasks
 from sqlalchemy import select
 from bot.database.models import Tasks
+from io import BytesIO
 
 router = Router()
 # ---------- function for time ----------
@@ -158,3 +160,23 @@ async def delete_task(call: CallbackQuery):
             pass
 
         await call.answer()
+        
+@router.callback_query(F.data.startswith("qr:"))
+async def send_qr_code(call: CallbackQuery):
+    await call.answer()
+    try:
+        task_id = int(call.data.split(":")[1])
+    except Exception:
+        await call.message.answer(text="شناسه تسک نامعتبر است.")
+        return
+    
+    payload = make_payload(task_id=task_id)
+    link = make_bale_link(payload)
+    
+    img_bytes = await generate_qr(link=link)
+    if img_bytes:
+        bio = BytesIO(img_bytes)
+        bio.name = "qr.png"
+        await call.message.answer_photo(photo=InputFile(bio), caption="QR برای این وظیفه (اسکن کنید.)")
+    else:
+        await call.message.answer(text=f"لینک QR ساخته شد:\n{link}")
