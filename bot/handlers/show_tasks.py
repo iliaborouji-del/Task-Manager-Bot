@@ -9,7 +9,7 @@ from bot.keyboards.show_tasks import (
     create_change_status_keyboard_2,
     create_delete_keyboard
 )
-from qr import make_bale_link, make_payload, generate_qr
+from bot.services.qrcode import get_or_create_qr
 from bot.database.show_tasks import show_not_completed_tasks
 from sqlalchemy import select
 from bot.database.models import Tasks
@@ -163,20 +163,20 @@ async def delete_task(call: CallbackQuery):
         
 @router.callback_query(F.data.startswith("qr:"))
 async def send_qr_code(call: CallbackQuery):
-    await call.answer()
+    _, task_id_str = call.data.split(":")
     try:
-        task_id = int(call.data.split(":")[1])
-    except Exception:
-        await call.message.answer(text="شناسه تسک نامعتبر است.")
+        task_id = int(task_id_str)
+    except ValueError:
+        await call.answer(text="شناسه تسک نامعتبر است.", show_alert=True)
         return
     
-    payload = make_payload(task_id=task_id)
-    link = make_bale_link(payload)
+    img_bytes = await get_or_create_qr(task_id=task_id)
+    if not img_bytes:
+        await call.message.answer(text="بارکد ساخته نشد یا بارکد منقضی شده است.")
+        await call.answer()
+        return
     
-    img_bytes = await generate_qr(link=link)
-    if img_bytes:
-        bio = BytesIO(img_bytes)
-        bio.name = "qr.png"
-        await call.message.answer_photo(photo=InputFile(bio), caption="QR برای این وظیفه (اسکن کنید.)")
-    else:
-        await call.message.answer(text=f"لینک QR ساخته شد:\n{link}")
+    bio = BytesIO(img_bytes)
+    bio.name = "qr-code.png"
+    await call.message.answer_photo(photo=InputFile(bio), caption=f"بارکد وظیفه {task_id}")
+    await call.answer()

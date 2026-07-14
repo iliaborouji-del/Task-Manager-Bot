@@ -2,9 +2,9 @@ from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery, InputFile
 from bot.database.connection import session_scope
 from bot.database.show_all_tasks import get_all_tasks
-from qr import make_payload, generate_qr, make_bale_link
 from io import BytesIO
 from bot.keyboards.show_all_tasks import create_qr_keyboard
+from bot.services.qrcode import get_or_create_qr
 from datetime import datetime, timedelta, timezone
 import jdatetime
 
@@ -60,20 +60,20 @@ async def show_all_tasks(message: Message):
             
 @router.callback_query(F.data.startswith("qr:"))
 async def send_qr_code(call: CallbackQuery):
-    await call.answer()
+    _, task_id_str = call.data.split(":")
     try:
-        task_id = int(call.data.split(":")[1])
-    except Exception:
-        await call.message.answer(text="شناسه تسک نامعتبر است.")
+        task_id = int(task_id_str)
+    except ValueError:
+        await call.answer(text="شناسه تسک نامعتبر است.", show_alert=True)
         return
     
-    payload = make_payload(task_id=task_id)
-    link = make_bale_link(payload)
+    img_bytes = await get_or_create_qr(task_id=task_id)
+    if not img_bytes:
+        await call.message.answer(text="بارکد ساخته نشد یا بارکد منقضی شده است.")
+        await call.answer()
+        return
     
-    img_bytes = await generate_qr(link=link)
-    if img_bytes:
-        bio = BytesIO(img_bytes)
-        bio.name = "qr.png"
-        await call.message.answer_photo(photo=InputFile(bio), caption="QR برای این وظیفه (اسکن کنید.)")
-    else:
-        await call.message.answer(text=f"لینک QR ساخته شد:\n{link}")
+    bio = BytesIO(img_bytes)
+    bio.name = "qr-code.png"
+    await call.message.answer_photo(photo=InputFile(bio), caption=f"بارکد وظیفه {task_id}")
+    await call.answer()

@@ -3,9 +3,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from bot.states.start import BotStates
 from bot.keyboards.start import create_main_menu_keyboard
-from qr import verify
+from bot.services.qrcode import verify
 from bot.database.connection import session_scope
-from bot.database.show_all_tasks import get_all_tasks
 from bot.database.models import Tasks
 from sqlalchemy import select
 import jdatetime
