@@ -44,7 +44,7 @@ async def start(message: Message, state: FSMContext):
             return
         
         async with session_scope() as session:
-            result = session.execute(select(Tasks).where(Tasks.id == task_id))
+            result = await session.execute(select(Tasks).where(Tasks.id == task_id))
             task = result.scalar_one_or_none()
             if not task:
                 await message.answer(text="وظیفه پیدا نشد.")

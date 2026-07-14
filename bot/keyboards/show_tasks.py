@@ -21,3 +21,10 @@ def create_change_status_keyboard_2(task_id: int):
         ]
     )
     return markup
+
+def create_delete_keyboard(task_id: int):
+    markup = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🗑️ حذف", callback_data=f"delete:{task_id}")]
+        ]
+    )

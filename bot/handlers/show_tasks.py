@@ -4,7 +4,11 @@ from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery
 from bot.database.delete_task import delete_task_by_id
 from bot.database.connection import session_scope
-from bot.keyboards.show_tasks import create_change_status_keyboard, create_change_status_keyboard_2
+from bot.keyboards.show_tasks import (
+    create_change_status_keyboard,
+    create_change_status_keyboard_2,
+    create_delete_keyboard
+)
 from bot.database.show_tasks import show_not_completed_tasks
 from sqlalchemy import select
 from bot.database.models import Tasks
@@ -137,7 +141,7 @@ async def change_status(call: CallbackQuery):
         )
             
         if new_status == "انجام شده ✅":
-            await call.message.edit_text(text=new_text, reply_markup=None)
+            await call.message.edit_text(text=new_text, reply_markup=create_delete_keyboard(task_id))
         else:
             await call.message.edit_text(text=new_text, reply_markup=create_change_status_keyboard_2(task.id))
             

@@ -22,24 +22,35 @@ def make_payload(task_id: int) -> int:
     token = base64.urlsafe_b64encode(raw).decode()
     return token
 
-def verify(token: str, max_age_secound: int = 60*60*24*30) -> Optional[int]:
+def verify(token: str, max_age_secound: int = 60*60*24*30) -> int:
     try:
-        raw = base64.urlsafe_b64decode(token.encode())
-        parts = raw.split(b"|")
-        if len(parts) < 3:
-            return None
+        token = urllib.parse.unquote_plus(token)
+        token_fixed = token + "=" * (-len(token) % 4)
+        raw = base64.urlsafe_b64decode(token_fixed.encode())
+    except:
+        return None
+    
+    parts = raw.split(b"|")
+    if len(parts) < 3:
+        return None
+    
+    try:
         task_id = int(parts[0].decode())
         ts = int(parts[1].decode())
-        sig = b"|".join(parts[2])
-        data = f"{task_id}{ts}".encode()
-        expected = hmac.new(QR_SECRET.encode(), data, hashlib.sha256).digest()
-        if not hmac.compare_digest(expected, sig):
-            return None
-        if time.time() - ts > max_age_secound:
-            return None
-        return task_id
-    except Exception:
+    except:
         return None
+    
+    sig = b"|".join(parts[2:])
+    data = f"{task_id}|{ts}".encode()
+    expected = hmac.new(QR_SECRET.encode(), data, hashlib.sha256).digest()
+    
+    if not hmac.compare_digest(expected, sig):
+        return None
+    
+    if time.time() - ts > max_age_secound:
+        return None
+    
+    return task_id
     
 async def generate_qr(link: str, size: str = 300*300, time_out: int = 15) -> Optional[bytes]:
     params = {"data": link, "size": size}
