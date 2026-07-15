@@ -73,7 +73,7 @@ async def generate_qr_image(link: str, size: str = 300*300, timeout: int = 15) -
     return None
 
 async def get_or_create_qr(task_id: int) -> Optional[bytes]:
-    cached = await load_qr(task_id)
+    cached = load_qr(task_id)
     if cached:
         return cached
     
@@ -81,5 +81,5 @@ async def get_or_create_qr(task_id: int) -> Optional[bytes]:
     link = make_bale_link(payload)
     img_bytes = await generate_qr_image(link)
     if img_bytes:
-        await cache_qr(task_id, img_bytes)
+        res = cache_qr(task_id, img_bytes)
     return img_bytes
