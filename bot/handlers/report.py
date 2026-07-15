@@ -1,6 +1,5 @@
 import jdatetime
 from aiogram.filters import StateFilter
-from datetime import datetime
 from aiogram import F, Router
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
@@ -68,24 +67,19 @@ async def show_report(message: Message):
         
         if active_day:
             jalali_active = jdatetime.date.fromgregorian(date=active_day)
-            active_day_text = f"{jalali_active.year}-{jalali_active.month:02d}-{jalali_active.day:02d}"
+            active_day_text = "\u200E" + jalali_active.strftime("%Y/%m/%d")
         else:
             active_day_text = "_"
             
         if next_deadline:
             try:
-                deadline = datetime.strptime(
-                    next_deadline.deadline,
-                    "%Y-%m-%d  %H:%M"
-                )
+                deadline = next_deadline.deadline
 
-                jalali_deadline = jdatetime.datetime.fromgregorian(
-                    datetime=deadline
-                )
+                jalali_deadline = jdatetime.datetime.fromgregorian(datetime=deadline)
 
                 next_deadline_text = jalali_deadline.strftime("%Y/%m/%d  %H:%M")
 
-            except ValueError:
+            except Exception:
                 next_deadline_text = "فرمت ددلاین نامعتبر است."
         else:
             next_deadline_text = "_"

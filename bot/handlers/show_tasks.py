@@ -14,6 +14,8 @@ from bot.database.show_tasks import show_not_completed_tasks
 from sqlalchemy import select
 from bot.database.models import Tasks
 from io import BytesIO
+from config import Config
+import aiohttp
 
 router = Router()
 # ---------- function for time ----------
@@ -161,9 +163,6 @@ async def delete_task(call: CallbackQuery):
 
         await call.answer()
 
-
-from config import Config
-import aiohttp
 async def send_photo_to_bale(chat_id, img_bytes, caption=""):
     """
     sending photo to bale servers by multipart/form-data

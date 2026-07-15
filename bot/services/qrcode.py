@@ -50,18 +50,18 @@ def verify(token: str, max_age_secound: int = 60*60*24*30) -> int:
     
     return task_id
     
-async def generate_qr(link: str, size: str = 300*300, time_out: int = 15) -> Optional[bytes]:
+async def generate_qr(link: str, size: str = "300*300", time_out: int = 15) -> Optional[bytes]:
     params = {"data": link, "size": size}
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(Config.QR_API_URL, params=params, timeout=time_out) as resp:
-                if resp == 200:
+                if resp.status == 200:
                     return await resp.read()
     except Exception:
         return None
     return None
 
-async def generate_qr_image(link: str, size: str = 300*300, timeout: int = 15) -> Optional[bytes]:
+async def generate_qr_image(link: str, size: str = "300*300", timeout: int = 15) -> Optional[bytes]:
     params = {"data": link, "size": size}
     try:
         async with aiohttp.ClientSession() as session:
@@ -73,7 +73,7 @@ async def generate_qr_image(link: str, size: str = 300*300, timeout: int = 15) -
     return None
 
 async def get_or_create_qr(task_id: int) -> Optional[bytes]:
-    cached = load_qr(task_id)
+    cached = await load_qr(task_id)
     if cached:
         return cached
     
@@ -81,5 +81,5 @@ async def get_or_create_qr(task_id: int) -> Optional[bytes]:
     link = make_bale_link(payload)
     img_bytes = await generate_qr_image(link)
     if img_bytes:
-        res = cache_qr(task_id, img_bytes)
+        await cache_qr(task_id, img_bytes)
     return img_bytes

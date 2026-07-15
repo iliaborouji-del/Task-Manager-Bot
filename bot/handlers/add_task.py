@@ -141,10 +141,8 @@ async def get_time(message: Message, state: FSMContext):
     if deadline_local <= now_iran:
         await message.answer(text="تاریخ انتخابی قبل از زمان فعلی است. لطفا یک تاریخ معتبر انتخاب کنید.")
         return
-    
-    deadline_utc = deadline_local.astimezone(timezone.utc)
 
-    await state.update_data(deadline=deadline_utc.isoformat())
+    await state.update_data(deadline=deadline_local.isoformat())
     
     jalali_text = f"{data['year']}/{data['month']:02d}/{data['day']:02d}  {data['hour']:02d}:{data['minute']:02d}"
     

@@ -150,20 +150,22 @@ def get_idle_days(start: datetime, end: datetime, active_dates: list):
 #----- next deadline -----
 async def get_next_deadline(session, user_id: int):
     now = datetime.now()
-    result = await session.execute(select(Tasks).where(Tasks.user_id == user_id))
+    result = await session.execute(
+        select(Tasks).where(Tasks.user_id == user_id)
+    )
     tasks = result.scalars().all()
     nearest = None
+
     for task in tasks:
         if task.status == "انجام شده ✅":
             continue
-        try:
-            if isinstance(task.deadline, datetime):
-                deadline_dt = task.deadline if task.deadline.tzinfo else task.deadline.replace(tzinfo=timezone.utc)
-            else:
-                deadline_dt = datetime.strptime(task.deadline, "%Y-%m-%d  %H:%M").replace(tzinfo=timezone.utc)
-        except Exception:
+        if task.deadline is None:
             continue
+
+        deadline_dt = task.deadline
+
         if deadline_dt > now:
             if nearest is None or deadline_dt < nearest[0]:
                 nearest = (deadline_dt, task)
+
     return nearest[1] if nearest else None
