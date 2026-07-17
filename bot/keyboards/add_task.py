@@ -100,7 +100,7 @@ def create_deadline_keyboard_days(year: int, month: int) -> InlineKeyboardMarkup
             row.append(
                 InlineKeyboardButton(
                     text=" ",
-                    callback_data=None
+                    callback_data="ignore"
                 )
             )
         keyboard.append(row)
