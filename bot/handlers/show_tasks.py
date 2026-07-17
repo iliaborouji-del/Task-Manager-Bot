@@ -166,37 +166,21 @@ async def delete_task(call: CallbackQuery):
 
         await call.answer()
 
-async def send_photo(chat_id, img_bytes, caption=""):
-    if Config.SOURCE == "telegram":
-        url = f"{Config.API_BASE}/bot{Config.BOT_TOKEN}/sendPhoto"
+async def send_photo_to_bale(chat_id, img_bytes, caption=""):
+    url = f"{Config.API_BASE}/bot{Config.BOT_TOKEN}/sendPhoto"
         
-        bio = BytesIO(img_bytes)
-        bio.name = "qr-code.png"
+    bio = BytesIO(img_bytes)
+    bio.name = "qr-code.png"
         
-        data = aiohttp.FormData()
-        data.add_field('chat_id', str(chat_id))
-        data.add_field('caption', caption)
-        data.add_field('photo', bio, filename='qr-code.png', content_type='image/png')
+    data = aiohttp.FormData()
+    data.add_field('chat_id', str(chat_id))
+    data.add_field('caption', caption)
+    data.add_field('photo', bio, filename='qr-code.png', content_type='image/png')
         
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=data) as response:
-                result = await response.json()
-                return result
-    elif Config.SOURCE == "bale":
-        url = f"{Config.API_BASE}/bot{Config.BOT_TOKEN}/sendPhoto"
-        
-        bio = BytesIO(img_bytes)
-        bio.name = "qr-code.png"
-        
-        data = aiohttp.FormData()
-        data.add_field('chat_id', str(chat_id))
-        data.add_field('caption', caption)
-        data.add_field('photo', bio, filename='qr-code.png', content_type='image/png')
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=data) as response:
-                result = await response.json()
-                return result
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, data=data) as response:
+            result = await response.json()
+            return result
 
 @router.callback_query(F.data.startswith("qr:"))
 async def send_qr_code(call: CallbackQuery):
@@ -213,8 +197,13 @@ async def send_qr_code(call: CallbackQuery):
         await call.answer()
         return
     
-    bio = BytesIO(img_bytes)
-    bio.name = "qr-code.png"
-    # await call.message.answer_photo(photo=BufferedInputFile(bio, bio.name), caption=f"بارکد وظیفه {task_id}")
-    await send_photo(call.from_user.id, img_bytes, f"بارکد وظیفه {task_id}")
+    if Config.SOURCE == "telegram":
+        await call.message.answer_photo(
+            photo=BufferedInputFile(img_bytes, "qr-code.png"),
+            caption=f"بارکد وظیفه {task_id}"
+        )
+    else:
+        # await call.message.answer_photo(photo=BufferedInputFile(bio, bio.name), caption=f"بارکد وظیفه {task_id}")
+        await send_photo_to_bale(call.from_user.id, img_bytes, f"بارکد وظیفه {task_id}")
+        
     await call.answer()

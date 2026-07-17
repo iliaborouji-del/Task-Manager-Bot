@@ -1,4 +1,5 @@
 venv/
-.env.*
+.env.telegram
+.env.bale
 __pycache__/
 *.db

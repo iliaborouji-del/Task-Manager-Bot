@@ -5,12 +5,7 @@ from config import Config
 from bot.caching.qrcode import cache_qr, load_qr
 
 if not Config.QR_SECRET:
-    raise RuntimeError("QR_SECRET id not set. Please set QR_SECRET in your .env file.")
-
-def make_bale_link(payload: str) -> str:
-    safe = urllib.parse.quote_plus(payload)
-    sep = "&" if "?" in Config.BALE_CHAT_BASE else "?"
-    return f"{Config.BALE_CHAT_BASE}{sep}start=task_{safe}"
+    raise RuntimeError("QR_SECRET is not set. Please set QR_SECRET in your .env file.")
 
 def make_payload(task_id: int) -> int:
     ts = int(time.time())
@@ -61,6 +56,15 @@ async def generate_qr(link: str, size: str = "300*300", time_out: int = 15) -> O
         return None
     return None
 
+def make_bale_link(payload: str) -> str:
+    safe = urllib.parse.quote_plus(payload)
+    sep = "&" if "?" in Config.BALE_CHAT_BASE else "?"
+    return f"{Config.BALE_CHAT_BASE}{sep}start=task_{safe}"
+
+def make_telegram_link(payload: str) -> str:
+    safe = urllib.parse.quote_plus(payload)
+    return f"{Config.TELEGRAM_CHAT_BASE}?start=task_{safe}"
+
 async def generate_qr_image(link: str, size: str = "300*300", timeout: int = 15) -> Optional[bytes]:
     params = {"data": link, "size": size}
     try:
@@ -78,7 +82,11 @@ async def get_or_create_qr(task_id: int) -> Optional[bytes]:
         return cached
     
     payload = make_payload(task_id)
-    link = make_bale_link(payload)
+    if Config.SOURCE == "telegram":
+        link = make_telegram_link(payload)
+    else:
+        link = make_bale_link(payload)
+        
     img_bytes = await generate_qr_image(link)
     if img_bytes:
         await cache_qr(task_id, img_bytes)
