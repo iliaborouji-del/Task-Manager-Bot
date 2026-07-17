@@ -20,7 +20,7 @@ def make_payload(task_id: int) -> int:
     token = base64.urlsafe_b64encode(raw).decode()
     return token
 
-def verify(token: str, max_age_secound: int = 60*60*24*30) -> int:
+def verify(token: str, max_age_seconds: int = 60*60*24*30) -> int:
     try:
         token = urllib.parse.unquote_plus(token)
         token_fixed = token + "=" * (-len(token) % 4)
@@ -45,7 +45,7 @@ def verify(token: str, max_age_secound: int = 60*60*24*30) -> int:
     if not hmac.compare_digest(expected, sig):
         return None
     
-    if time.time() - ts > max_age_secound:
+    if time.time() - ts > max_age_seconds:
         return None
     
     return task_id

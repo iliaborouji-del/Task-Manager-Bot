@@ -13,6 +13,13 @@ from bot.handlers.report import router as report
 from bot.handlers.show_all_tasks import router as all_tasks
 from bot.database.connection import create_db
 
+if Config.SOURCE == "telegram":
+    SESSION = AiohttpSession(api=TelegramAPIServer.from_base(Config.API_BASE))
+else:
+    SESSION = AiohttpSession(api=TelegramAPIServer.from_base(Config.API_BASE))
+
+bot = Bot(token=Config.BOT_TOKEN, session=SESSION)
+
 redis = Redis(
     host=Config.REDIS_HOST,
     port=Config.REDIS_PORT,
@@ -21,10 +28,6 @@ redis = Redis(
     decode_responses=True
 )
 storage = RedisStorage(redis=redis)
-
-SESSION = AiohttpSession(api=TelegramAPIServer.from_base("https://tapi.bale.ai"))
-    
-bot = Bot(token=Config.BOT_TOKEN, session=SESSION)
 dp = Dispatcher(storage=storage)
 
 dp.include_router(start)
