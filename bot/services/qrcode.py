@@ -76,18 +76,18 @@ async def generate_qr_image(link: str, size: str = "300*300", timeout: int = 15)
         return None
     return None
 
-async def get_or_create_qr(task_id: int) -> Optional[bytes]:
+async def get_or_create_qr(task_id: int) -> bytes:
     cached = await load_qr(task_id)
     if cached:
-        return cached
-    
-    payload = make_payload(task_id)
-    if Config.SOURCE == "telegram":
-        link = make_telegram_link(payload)
+        link = cached
     else:
-        link = make_bale_link(payload)
-        
+        payload = make_payload(task_id)
+        if Config.SOURCE == "telegram":
+            link = make_telegram_link(payload)
+        else:
+            link = make_bale_link(payload)
+    
     img_bytes = await generate_qr_image(link)
-    if img_bytes:
-        await cache_qr(task_id, img_bytes)
+    if img_bytes and not cached:
+        await cache_qr(task_id, link)
     return img_bytes
