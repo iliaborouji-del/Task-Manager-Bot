@@ -63,7 +63,10 @@ def make_bale_link(payload: str) -> str:
 
 def make_telegram_link(payload: str) -> str:
     safe = urllib.parse.quote_plus(payload)
-    return f"{Config.CHAT_BASE}?start=task_{safe}"
+    message_text = f"/start task_{safe}"
+    encoded_message = urllib.parse.quote_plus(message_text)
+    # Use text= parameter to pre-fill the message box
+    return f"{Config.CHAT_BASE}?text={encoded_message}"
 
 async def generate_qr_image(link: str, size: str = "300*300", timeout: int = 15) -> Optional[bytes]:
     params = {"data": link, "size": size}
@@ -77,17 +80,13 @@ async def generate_qr_image(link: str, size: str = "300*300", timeout: int = 15)
     return None
 
 async def get_or_create_qr(task_id: int) -> bytes:
-    cached = await load_qr(task_id)
-    if cached:
-        link = cached
+    payload = make_payload(task_id)
+    if Config.SOURCE == "telegram":
+        link = make_telegram_link(payload)
     else:
-        payload = make_payload(task_id)
-        if Config.SOURCE == "telegram":
-            link = make_telegram_link(payload)
-        else:
-            link = make_bale_link(payload)
+        link = make_bale_link(payload)
     
+    # Cache the new link for future use
+    await cache_qr(task_id, link)
     img_bytes = await generate_qr_image(link)
-    if img_bytes and not cached:
-        await cache_qr(task_id, link)
     return img_bytes
