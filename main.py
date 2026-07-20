@@ -14,7 +14,7 @@ from bot.handlers.show_all_tasks import router as all_tasks
 from bot.database.connection import create_db
 
 if Config.SOURCE == "telegram":
-    SESSION = AiohttpSession(api=TelegramAPIServer.from_base(Config.API_BASE))
+    SESSION = None
 else:
     SESSION = AiohttpSession(api=TelegramAPIServer.from_base(Config.API_BASE))
 

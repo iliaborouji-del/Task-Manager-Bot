@@ -127,6 +127,7 @@ def create_cancel_keyboard():
     markup = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="لغو ❌")]
-        ]
+        ],
+        resize_keyboard=True
     )
     return markup

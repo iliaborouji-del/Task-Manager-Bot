@@ -14,8 +14,7 @@ class Config:
     SOURCE = source
     BOT_TOKEN = os.getenv("TOKEN")
     API_BASE = os.getenv("API_BASE")
-    BALE_CHAT_BASE = os.getenv("BALE_CHAT_BASE")
-    TELEGRAM_CHAT_BASE = os.getenv("TELEGRAM_CHAT_BASE")
+    CHAT_BASE = os.getenv("CHAT_BASE")
 
     REDIS_HOST = os.getenv("REDIS_HOST")
     REDIS_PORT = int(os.getenv("REDIS_PORT"))

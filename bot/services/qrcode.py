@@ -58,12 +58,12 @@ async def generate_qr(link: str, size: str = "300*300", time_out: int = 15) -> O
 
 def make_bale_link(payload: str) -> str:
     safe = urllib.parse.quote_plus(payload)
-    sep = "&" if "?" in Config.BALE_CHAT_BASE else "?"
-    return f"{Config.BALE_CHAT_BASE}{sep}start=task_{safe}"
+    sep = "&" if "?" in Config.CHAT_BASE else "?"
+    return f"{Config.CHAT_BASE}{sep}start=task_{safe}"
 
 def make_telegram_link(payload: str) -> str:
     safe = urllib.parse.quote_plus(payload)
-    return f"{Config.TELEGRAM_CHAT_BASE}?start=task_{safe}"
+    return f"{Config.CHAT_BASE}?start=task_{safe}"
 
 async def generate_qr_image(link: str, size: str = "300*300", timeout: int = 15) -> Optional[bytes]:
     params = {"data": link, "size": size}
