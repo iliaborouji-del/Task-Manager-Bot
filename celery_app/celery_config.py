@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BROKER_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "BROKER_URL")
+BROKER_URL = "redis://localhost:6379/0"
+RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", BROKER_URL)
 
 app = Celery(
     "task_manager",

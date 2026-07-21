@@ -1,4 +1,5 @@
 from bot.caching.client import qr_redis
+from typing import Optional
 
 QR_EXPIRE_SECONDS = 7 * 24 * 60 * 60
 
@@ -8,9 +9,5 @@ def qr_key(task_id: int) -> str:
 async def cache_qr(task_id: int, link: str):
     return await qr_redis.setex(qr_key(task_id), QR_EXPIRE_SECONDS, link)
     
-async def load_qr(task_id: int) -> str:
+async def load_qr(task_id: int) -> Optional[str]:
     return await qr_redis.get(qr_key(task_id))
-
-async def delete_qr(task_id: int) -> None:
-    key = qr_key(task_id)
-    return await qr_redis.delete(key)

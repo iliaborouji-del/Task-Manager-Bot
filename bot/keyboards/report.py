@@ -7,6 +7,7 @@ def create_report_keyboard():
              KeyboardButton(text="ماهانه 📆"),
              KeyboardButton(text="سالانه 📆")],
             [KeyboardButton(text="بازگشت ↪️")]
-        ]
+        ],
+        resize_keyboard=True
     )
     return markup

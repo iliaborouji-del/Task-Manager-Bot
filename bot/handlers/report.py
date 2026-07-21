@@ -1,4 +1,5 @@
 import jdatetime
+from datetime import timezone, timedelta
 from aiogram.filters import StateFilter
 from aiogram import F, Router
 from aiogram.types import Message
@@ -23,6 +24,8 @@ from bot.database.report import (
 
 router = Router()
 
+IRAN_TZ = timezone(timedelta(hours=3, minutes=30))
+
 @router.message(StateFilter("*"), F.text == "بازگشت ↪️")
 async def return_to_menu(message: Message, state: FSMContext):
     await state.clear()
@@ -34,7 +37,7 @@ async def report_message(message: Message, state: FSMContext):
     await state.set_state(ReportState.waiting_for_date_range)
     
 @router.message(ReportState.waiting_for_date_range)
-async def show_report(message: Message):
+async def show_report(message: Message, state: FSMContext):
     async with session_scope() as session:
         if message.text == "هفتگی 📆":
             report_type = "weekly"
@@ -73,7 +76,7 @@ async def show_report(message: Message):
             
         if next_deadline:
             try:
-                deadline = next_deadline.deadline
+                deadline = next_deadline.deadline.astimezone(IRAN_TZ)
 
                 jalali_deadline = jdatetime.datetime.fromgregorian(datetime=deadline)
 
@@ -85,20 +88,21 @@ async def show_report(message: Message):
             next_deadline_text = "_"
             
         text = (
-            "----------\n"
+            "----------\n" + "\u200E"
             f"📋 مجموع وظایف: {len(total_tasks)}\n"
             f"✅ انجام شده: {len(completed_tasks)}\n"
             f"⏳ در حال انجام: {len(doing_tasks)}\n"
             f"⭕ انجام نشده: {len(not_done_tasks)}\n"
             f"⌛ عقب افتاده: {len(overdue_tasks)}\n"
-            "----------\n"
+            "----------\n" + "\u200E"
             f"📈 نرخ تکمیل: {completion_rate}%\n"
             f"⏰ انجام به موقع: {on_time}%\n"
             f"🔥 فعال ترین روز: {active_day_text} ({active_count} وظیفه)\n"
             f"😴 روز های بدون فعالیت: {idle_days_count}\n"
             f"⚠️ نزدیک ترین ددلاین: {next_deadline_text}\n"
-            "----------\n"
+            "----------\n" + "\u200E"
             "ادامه دهید 💪"
         )
         
         await message.answer(text=text)
+        await state.clear()

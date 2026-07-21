@@ -6,7 +6,6 @@ from bot.database.delete_task import delete_task_by_id
 from bot.database.connection import session_scope
 from bot.keyboards.show_tasks import (
     create_change_status_keyboard,
-    create_change_status_keyboard_2,
     create_delete_keyboard
 )
 from bot.services.qrcode import get_or_create_qr
@@ -16,25 +15,20 @@ from bot.database.models import Tasks
 from io import BytesIO
 from config import Config
 import aiohttp
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = Router()
 # ---------- function for time ----------
 IRAN_TZ = timezone(timedelta(hours=3, minutes=30))
 #----------
-def datetime_utc(dt: datetime) -> datetime:
-    if dt is None:
-        raise ValueError("datetime is None")
+def format_jalali(dt: datetime, fmt: str = "%Y/%m/%d  %H:%M") -> str:
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt
+        dt = dt.replace(tzinfo=timezone.utc)
+    dt = dt.astimezone(IRAN_TZ)
 
-def iran_time(dt: datetime) -> datetime:
-    dt_utc = datetime_utc(dt)
-    return dt_utc.astimezone(IRAN_TZ)
-
-def format_jalali_dt(dt: datetime, fmt: str = "%Y/%m/%d  %H:%M") -> str:
-    local = iran_time(dt)
-    jalali = jdatetime.datetime.fromgregorian(datetime=local)
+    jalali = jdatetime.datetime.fromgregorian(datetime=dt)
     return jalali.strftime(fmt)
 
 def deadline_string(deadline_str: str, fmt: str = "%Y-%m-%d  %H:%M"):
@@ -56,7 +50,7 @@ async def show_tasks(message: Message):
         
         for task in tasks:
             try:
-                created_text = format_jalali_dt(task.created_at)
+                created_text = format_jalali(task.created_at)
             except Exception:
                 created_text = str(task.created_at)
                 
@@ -68,12 +62,12 @@ async def show_tasks(message: Message):
                 parsed_deadline = (
                     task.deadline 
                     if task.deadline.tzinfo 
-                    else task.deadline.replace(tzinfo=timezone.utc)
+                    else task.deadline.replace(tzinfo=IRAN_TZ)
                 )
                 
             if parsed_deadline:
                 try:
-                    deadline_text = format_jalali_dt(parsed_deadline)
+                    deadline_text = format_jalali(parsed_deadline)
                 except Exception:
                     deadline_text = str(task.deadline)
                 
@@ -89,12 +83,15 @@ async def show_tasks(message: Message):
             )
             
             if task.status == "در حال انجام ⏳":
-                await message.answer(text=text, reply_markup=create_change_status_keyboard_2(task.id))
+                await message.answer(
+                    text=text,
+                    reply_markup=create_change_status_keyboard(task.id, "در حال انجام ⏳")
+                )
             else:
                 await message.answer(
                     text=text,
-                    reply_markup=create_change_status_keyboard(task.id)
-            )
+                    reply_markup=create_change_status_keyboard(task.id, "انجام نشده ⭕")
+                )
         
 @router.callback_query(F.data.startswith("task:"))
 async def change_status(call: CallbackQuery):
@@ -113,9 +110,14 @@ async def change_status(call: CallbackQuery):
             task.completed_at = datetime.now(timezone.utc)
             
         await session.commit()
+        logger.info(
+            "Task %s status changed to %s",
+            task.id,
+            new_status
+        )
         
         try:
-            created_text = format_jalali_dt(task.created_at)
+            created_text = format_jalali(task.created_at)
         except Exception:
             created_text = str(task.created_at)
         
@@ -132,7 +134,7 @@ async def change_status(call: CallbackQuery):
             
         if parsed_deadline:
             try:
-                deadline_text = format_jalali_dt(parsed_deadline)
+                deadline_text = format_jalali(parsed_deadline)
             except Exception:
                 deadline_text = str(task.deadline)
                 
@@ -148,9 +150,20 @@ async def change_status(call: CallbackQuery):
         )
             
         if new_status == "انجام شده ✅":
-            await call.message.edit_text(text=new_text, reply_markup=create_delete_keyboard(task_id))
+            await call.message.edit_text(
+                text=new_text, 
+                reply_markup=create_delete_keyboard(task_id)
+            )
+        elif new_status == "در حال انجام ⏳":
+            await call.message.edit_text(
+                text=new_text, 
+                reply_markup=create_change_status_keyboard(task.id, "در حال انجام ⏳")
+            )
         else:
-            await call.message.edit_text(text=new_text, reply_markup=create_change_status_keyboard_2(task.id))
+            await call.message.edit_text(
+                text=new_text, 
+                reply_markup=create_change_status_keyboard(task.id, "انجام نشده ⭕")
+            )
             
         await call.answer(text="وضعیت با موفقیت تغییر کرد.")
         
@@ -159,6 +172,10 @@ async def delete_task(call: CallbackQuery):
     async with session_scope() as session:
         task_id = int(call.data.split(":")[1])
         await delete_task_by_id(session=session, task_id=task_id)
+        logger.info(
+            "Delete requested for task=%s",
+            task_id
+        )
         try:
             await call.message.edit_text(text="وظیفه حذف شد.", reply_markup=None)
         except Exception:
@@ -167,7 +184,7 @@ async def delete_task(call: CallbackQuery):
         await call.answer()
 
 async def send_photo_to_bale(chat_id, img_bytes, caption=""):
-    url = f"{Config.API_BASE}/bot{Config.BOT_TOKEN}/sendPhoto"
+    url = f"{Config.API_BASE_BALE}/bot{Config.BOT_TOKEN}/sendPhoto"
         
     bio = BytesIO(img_bytes)
     bio.name = "qr-code.png"

@@ -8,12 +8,12 @@ if source == "telegram":
 elif source == "bale":
     load_dotenv(".env.bale")
 else:
-    raise RuntimeError("Environment variable SOURCE must be set to 'telegtam' ot 'bale'")
+    raise RuntimeError("Environment variable SOURCE must be set to 'telegram' or 'bale'")
 
 class Config:
     SOURCE = source
     BOT_TOKEN = os.getenv("TOKEN")
-    API_BASE = os.getenv("API_BASE")
+    API_BASE_BALE = os.getenv("API_BASE_BALE")
     CHAT_BASE = os.getenv("CHAT_BASE")
 
     REDIS_HOST = os.getenv("REDIS_HOST")

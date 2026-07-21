@@ -142,7 +142,8 @@ async def get_time(message: Message, state: FSMContext):
         await message.answer(text="تاریخ انتخابی قبل از زمان فعلی است. لطفا یک تاریخ معتبر انتخاب کنید.")
         return
 
-    await state.update_data(deadline=deadline_local.isoformat())
+    deadline_utc = deadline_local.astimezone(timezone.utc)
+    await state.update_data(deadline=deadline_utc.isoformat())
     
     jalali_text = f"{data['year']}/{data['month']:02d}/{data['day']:02d}  {data['hour']:02d}:{data['minute']:02d}"
     
@@ -165,13 +166,11 @@ async def get_status(message: Message, state: FSMContext):
         await state.update_data(status=message.text)
         
         data = await state.get_data()
-        deadline = datetime.fromisoformat(data["deadline"])
         
         await save_task(
             session=session,
             user_id=message.from_user.id,
-            data=data,
-            deadline=deadline
+            data=data
         )
         
         await message.answer(SUCCESS, reply_markup=create_main_menu_keyboard())

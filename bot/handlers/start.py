@@ -16,18 +16,13 @@ router = Router()
 
 IRAN_TZ = timezone(timedelta(hours=3, minutes=30))
 
-def ensure_utc(dt: datetime) -> datetime:
+def format_jalali(dt: datetime, fmt: str = "%Y/%m/%d  %H:%M") -> str:
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt
+        dt = dt.replace(tzinfo=timezone.utc)
+    dt = dt.astimezone(IRAN_TZ)
 
-def to_iran(dt: datetime) -> datetime:
-    return ensure_utc(dt).astimezone(IRAN_TZ)
-
-def format_jalali(dt: datetime) -> str:
-    local = to_iran(dt)
-    jdt = jdatetime.datetime.fromgregorian(datetime=local)
-    return jdt.strftime("%Y/%m/%d  %H:%M")
+    jalali = jdatetime.datetime.fromgregorian(datetime=dt)
+    return jalali.strftime(fmt)
 
 @router.message(filters.CommandStart())
 async def start(message: Message, state: FSMContext):

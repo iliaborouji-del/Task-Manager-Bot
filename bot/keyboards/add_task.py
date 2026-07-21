@@ -17,12 +17,12 @@ def create_priority_keyboard():
 
 #-----------deadline----------
 def create_deadline_keyboard_year() -> InlineKeyboardMarkup:
-    yaers = [1405, 1406, 1407, 1408]
+    years = [1405, 1406, 1407, 1408]
     
     keyboard = []
     row = []
     
-    for year in yaers:
+    for year in years:
         row.append(
             InlineKeyboardButton(
                 text=str(year),

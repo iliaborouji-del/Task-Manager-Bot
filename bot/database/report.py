@@ -76,10 +76,7 @@ async def get_overdue_tasks(session, user_id: int, start: datetime, end: datetim
     overdue = []
     for task in tasks:
         try:
-            if isinstance(task.deadline, datetime):
-                deadline_dt = task.deadline if task.deadline.tzinfo else task.deadline.replace(tzinfo=timezone.utc)
-            else:
-                deadline_dt = datetime.strptime(task.deadline, "%Y-%m-%d  %H:%M").replace(tzinfo=timezone.utc)
+            deadline_dt = task.deadline if task.deadline.tzinfo else task.deadline.replace(tzinfo=timezone.utc)
             if deadline_dt < now:
                 overdue.append(task)
         except Exception:
@@ -103,10 +100,9 @@ def calc_on_time(completed_tasks):
             if not task.completed_at:
                 continue
             counted += 1
-            if isinstance(task.deadline , datetime):
-                deadline_dt = task.deadline if task.deadline.tzinfo else task.deadline.replace(tzinfo=timezone.utc)
-            else:
-                deadline_dt = datetime.strptime(task.deadline, "%Y-%m-%d  %H:%M").replace(tzinfo=timezone.utc)
+
+            deadline_dt = task.deadline if task.deadline.tzinfo else task.deadline.replace(tzinfo=timezone.utc)
+            
             if task.completed_at <= deadline_dt:
                 on_time_count += 1
         except Exception:
@@ -149,7 +145,7 @@ def get_idle_days(start: datetime, end: datetime, active_dates: list):
 
 #----- next deadline -----
 async def get_next_deadline(session, user_id: int):
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     result = await session.execute(
         select(Tasks).where(Tasks.user_id == user_id)
     )
@@ -162,7 +158,7 @@ async def get_next_deadline(session, user_id: int):
         if task.deadline is None:
             continue
 
-        deadline_dt = task.deadline
+        deadline_dt = task.deadline if task.deadline.tzinfo else task.deadline.replace(tzinfo=timezone.utc)
 
         if deadline_dt > now:
             if nearest is None or deadline_dt < nearest[0]:

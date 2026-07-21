@@ -2,12 +2,15 @@ import time, hmac, hashlib, base64, urllib.parse
 from typing import Optional
 import aiohttp
 from config import Config
-from bot.caching.qrcode import cache_qr, load_qr
+from bot.caching.qrcode import cache_qr
+import logging
+
+logger = logging.getLogger(__name__)
 
 if not Config.QR_SECRET:
     raise RuntimeError("QR_SECRET is not set. Please set QR_SECRET in your .env file.")
 
-def make_payload(task_id: int) -> int:
+def make_payload(task_id: int) -> str:
     ts = int(time.time())
     data = f"{task_id}|{ts}"
     sig = hmac.new(Config.QR_SECRET.encode(), data.encode(), hashlib.sha256).digest()
@@ -21,6 +24,7 @@ def verify(token: str, max_age_seconds: int = 60*60*24*30) -> int:
         token_fixed = token + "=" * (-len(token) % 4)
         raw = base64.urlsafe_b64decode(token_fixed.encode())
     except:
+        logger.warning("QR verification failed.")
         return None
     
     parts = raw.split(b"|")
@@ -44,17 +48,6 @@ def verify(token: str, max_age_seconds: int = 60*60*24*30) -> int:
         return None
     
     return task_id
-    
-async def generate_qr(link: str, size: str = "300*300", time_out: int = 15) -> Optional[bytes]:
-    params = {"data": link, "size": size}
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(Config.QR_API_URL, params=params, timeout=time_out) as resp:
-                if resp.status == 200:
-                    return await resp.read()
-    except Exception:
-        return None
-    return None
 
 def make_bale_link(payload: str) -> str:
     safe = urllib.parse.quote_plus(payload)
@@ -76,6 +69,7 @@ async def generate_qr_image(link: str, size: str = "300*300", timeout: int = 15)
                 if resp.status == 200:
                     return await resp.read()
     except Exception:
+        logger.exception("QR generation failed.")
         return None
     return None
 
@@ -88,5 +82,9 @@ async def get_or_create_qr(task_id: int) -> bytes:
     
     # Cache the new link for future use
     await cache_qr(task_id, link)
+    logger.info(
+        "QR cached for task=%s",
+        task_id
+    )
     img_bytes = await generate_qr_image(link)
     return img_bytes
