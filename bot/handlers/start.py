@@ -7,22 +7,11 @@ from bot.services.qrcode import verify
 from bot.database.connection import session_scope
 from bot.database.models import Tasks
 from sqlalchemy import select
-import jdatetime
-from datetime import datetime, timezone, timedelta
+from bot.utils.datetime import jalali_string
 from bot.templates.start import start_text
 import urllib.parse
 
 router = Router()
-
-IRAN_TZ = timezone(timedelta(hours=3, minutes=30))
-
-def format_jalali(dt: datetime, fmt: str = "%Y/%m/%d  %H:%M") -> str:
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    dt = dt.astimezone(IRAN_TZ)
-
-    jalali = jdatetime.datetime.fromgregorian(datetime=dt)
-    return jalali.strftime(fmt)
 
 @router.message(filters.CommandStart())
 async def start(message: Message, state: FSMContext):
@@ -44,10 +33,10 @@ async def start(message: Message, state: FSMContext):
                 await message.answer(text="وظیفه پیدا نشد.")
                 return
             
-            created_text = format_jalali(task.created_at)
+            created_text = jalali_string(task.created_at)
             if task.deadline:
                 try:
-                    deadline_text = format_jalali(task.deadline)
+                    deadline_text = jalali_string(task.deadline)
                 except Exception:
                     deadline_text = str(task.deadline)
             else:

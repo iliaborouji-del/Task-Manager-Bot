@@ -1,5 +1,3 @@
-import jdatetime
-from datetime import timezone, timedelta
 from aiogram.filters import StateFilter
 from aiogram import F, Router
 from aiogram.types import Message
@@ -8,6 +6,7 @@ from bot.keyboards.report import create_report_keyboard
 from bot.keyboards.start import create_main_menu_keyboard
 from bot.database.connection import session_scope
 from bot.states.report import ReportState
+from bot.utils.datetime import jalali_string, jalali_date_string
 from bot.database.report import (
     get_total_tasks,
     get_overdue_tasks,
@@ -23,8 +22,6 @@ from bot.database.report import (
 )
 
 router = Router()
-
-IRAN_TZ = timezone(timedelta(hours=3, minutes=30))
 
 @router.message(StateFilter("*"), F.text == "بازگشت ↪️")
 async def return_to_menu(message: Message, state: FSMContext):
@@ -69,38 +66,32 @@ async def show_report(message: Message, state: FSMContext):
         idle_days_count = get_idle_days(start, end, active_date)
         
         if active_day:
-            jalali_active = jdatetime.date.fromgregorian(date=active_day)
-            active_day_text = "\u200E" + jalali_active.strftime("%Y/%m/%d")
+            active_day_text = "\u200E" + jalali_date_string(active_day)
         else:
             active_day_text = "_"
             
         if next_deadline:
             try:
-                deadline = next_deadline.deadline.astimezone(IRAN_TZ)
-
-                jalali_deadline = jdatetime.datetime.fromgregorian(datetime=deadline)
-
-                next_deadline_text = jalali_deadline.strftime("%Y/%m/%d  %H:%M")
-
+                next_deadline_text = jalali_string(next_deadline.deadline)
             except Exception:
                 next_deadline_text = "فرمت ددلاین نامعتبر است."
         else:
             next_deadline_text = "_"
             
         text = (
-            "----------\n" + "\u200E"
+            "\u200F----------\n"
             f"📋 مجموع وظایف: {len(total_tasks)}\n"
             f"✅ انجام شده: {len(completed_tasks)}\n"
             f"⏳ در حال انجام: {len(doing_tasks)}\n"
             f"⭕ انجام نشده: {len(not_done_tasks)}\n"
             f"⌛ عقب افتاده: {len(overdue_tasks)}\n"
-            "----------\n" + "\u200E"
+            "\u200F----------\n"
             f"📈 نرخ تکمیل: {completion_rate}%\n"
             f"⏰ انجام به موقع: {on_time}%\n"
             f"🔥 فعال ترین روز: {active_day_text} ({active_count} وظیفه)\n"
             f"😴 روز های بدون فعالیت: {idle_days_count}\n"
             f"⚠️ نزدیک ترین ددلاین: {next_deadline_text}\n"
-            "----------\n" + "\u200E"
+            "\u200F----------\n"
             "ادامه دهید 💪"
         )
         

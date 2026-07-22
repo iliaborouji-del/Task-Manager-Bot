@@ -1,11 +1,15 @@
 from sqlalchemy import select
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, datetime
 from collections import Counter
 from bot.database.models import Tasks
+from bot.utils.datetime import (
+    now_iran,
+    iran_to_naive,
+)
 
 #----- get_date_range -----
 def get_date_range(report_type: str):
-    now = datetime.now(timezone.utc)
+    now = now_iran()
     
     if report_type == "weekly":
         start = now - timedelta(days=7)
@@ -63,7 +67,7 @@ async def get_not_done_tasks(session, user_id: int, start: datetime, end: dateti
 
 #----- overdue tasks -----
 async def get_overdue_tasks(session, user_id: int, start: datetime, end: datetime):
-    now = datetime.now(timezone.utc)
+    now = iran_to_naive(now_iran())
     
     result = await session.execute(
         select(Tasks).where(
@@ -76,7 +80,7 @@ async def get_overdue_tasks(session, user_id: int, start: datetime, end: datetim
     overdue = []
     for task in tasks:
         try:
-            deadline_dt = task.deadline if task.deadline.tzinfo else task.deadline.replace(tzinfo=timezone.utc)
+            deadline_dt = task.deadline
             if deadline_dt < now:
                 overdue.append(task)
         except Exception:
@@ -101,7 +105,7 @@ def calc_on_time(completed_tasks):
                 continue
             counted += 1
 
-            deadline_dt = task.deadline if task.deadline.tzinfo else task.deadline.replace(tzinfo=timezone.utc)
+            deadline_dt = task.deadline
             
             if task.completed_at <= deadline_dt:
                 on_time_count += 1
@@ -145,7 +149,7 @@ def get_idle_days(start: datetime, end: datetime, active_dates: list):
 
 #----- next deadline -----
 async def get_next_deadline(session, user_id: int):
-    now = datetime.now(timezone.utc)
+    now = iran_to_naive(now_iran())
     result = await session.execute(
         select(Tasks).where(Tasks.user_id == user_id)
     )
@@ -158,7 +162,7 @@ async def get_next_deadline(session, user_id: int):
         if task.deadline is None:
             continue
 
-        deadline_dt = task.deadline if task.deadline.tzinfo else task.deadline.replace(tzinfo=timezone.utc)
+        deadline_dt = task.deadline
 
         if deadline_dt > now:
             if nearest is None or deadline_dt < nearest[0]:

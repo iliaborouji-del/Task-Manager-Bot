@@ -3,3 +3,4 @@ venv/
 .env.bale
 __pycache__/
 *.db
+celerybeat-schedule

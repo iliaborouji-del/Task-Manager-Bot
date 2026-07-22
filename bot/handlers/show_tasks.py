@@ -1,5 +1,5 @@
 import jdatetime
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery, BufferedInputFile
 from bot.database.delete_task import delete_task_by_id
@@ -7,6 +7,10 @@ from bot.database.connection import session_scope
 from bot.keyboards.show_tasks import (
     create_change_status_keyboard,
     create_delete_keyboard
+)
+from bot.utils.datetime import (
+    jalali_string,
+    naive_to_iran,
 )
 from bot.services.qrcode import get_or_create_qr
 from bot.database.show_tasks import show_not_completed_tasks
@@ -20,25 +24,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 router = Router()
-# ---------- function for time ----------
-IRAN_TZ = timezone(timedelta(hours=3, minutes=30))
-#----------
-def format_jalali(dt: datetime, fmt: str = "%Y/%m/%d  %H:%M") -> str:
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    dt = dt.astimezone(IRAN_TZ)
 
-    jalali = jdatetime.datetime.fromgregorian(datetime=dt)
-    return jalali.strftime(fmt)
-
-def deadline_string(deadline_str: str, fmt: str = "%Y-%m-%d  %H:%M"):
-    try:
-        dt = datetime.strptime(deadline_str, fmt)
-        return dt.replace(tzinfo=timezone.utc)
-    except Exception:
-        return None
-
-# ---------- continue -----------
 @router.message(F.text == "📋 نمایش وظایف انجام نشده")
 async def show_tasks(message: Message):
     async with session_scope() as session:
@@ -50,27 +36,14 @@ async def show_tasks(message: Message):
         
         for task in tasks:
             try:
-                created_text = format_jalali(task.created_at)
+                created_text = jalali_string(task.created_at)
             except Exception:
                 created_text = str(task.created_at)
                 
-            deadline_text = task.deadline
-            parsed_deadline = None
-            if  isinstance(task.deadline, str):
-                parsed_deadline = deadline_string(task.deadline)
-            elif isinstance(task.deadline, datetime):
-                parsed_deadline = (
-                    task.deadline 
-                    if task.deadline.tzinfo 
-                    else task.deadline.replace(tzinfo=IRAN_TZ)
-                )
-                
-            if parsed_deadline:
-                try:
-                    deadline_text = format_jalali(parsed_deadline)
-                except Exception:
-                    deadline_text = str(task.deadline)
-                
+            if task.deadline:
+                deadline_text = jalali_string(task.deadline)
+            else:
+                deadline_text = "_"
                 
             text = (
                 f"🆔 شناسه: {task.id}\n"
@@ -107,7 +80,7 @@ async def change_status(call: CallbackQuery):
         
         task.status = new_status
         if new_status == "انجام شده ✅":
-            task.completed_at = datetime.now(timezone.utc)
+            task.completed_at = naive_to_iran(datetime.now()).replace(tzinfo=None)
             
         await session.commit()
         logger.info(
@@ -117,27 +90,14 @@ async def change_status(call: CallbackQuery):
         )
         
         try:
-            created_text = format_jalali(task.created_at)
+            created_text = jalali_string(task.created_at)
         except Exception:
             created_text = str(task.created_at)
         
-        deadline_text = task.deadline
-        parsed_deadline = None
-        if  isinstance(task.deadline, str):
-            parsed_deadline = deadline_string(task.deadline)
-        elif isinstance(task.deadline, datetime):
-            parsed_deadline = (
-                task.deadline 
-                if task.deadline.tzinfo 
-                else task.deadline.replace(tzinfo=timezone.utc)
-            )
-            
-        if parsed_deadline:
-            try:
-                deadline_text = format_jalali(parsed_deadline)
-            except Exception:
-                deadline_text = str(task.deadline)
-                
+        if task.deadline:
+            deadline_text = jalali_string(task.deadline)
+        else:
+            deadline_text = "_"
                 
         new_text = (
             f"🆔 شناسه: {task.id}\n"

@@ -9,7 +9,7 @@ async def save_task(session, user_id, data):
 
     if isinstance(deadline, str):
         deadline = datetime.fromisoformat(deadline)
-        
+
     task = Tasks(
         user_id=user_id,
         title=data["title"],
@@ -18,9 +18,10 @@ async def save_task(session, user_id, data):
         deadline=deadline,
         status=data["status"],
     )
-    
+
     session.add(task)
     await session.commit()
+
     logger.info(
         "Task created. id=%s user=%s",
         task.id,

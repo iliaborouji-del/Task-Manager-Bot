@@ -2,8 +2,11 @@ from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import StateFilter
-from datetime import datetime, timedelta, timezone
-import jdatetime
+from bot.utils.datetime import (
+    jalali_to_gregorian,
+    iran_to_naive,
+    is_past,
+)
 
 from bot.keyboards.start import create_main_menu_keyboard
 from bot.states.add_task import AddTaskStates, Deadline
@@ -124,26 +127,23 @@ async def get_time(message: Message, state: FSMContext):
     
     data = await state.get_data()
     
-    jalali_date = jdatetime.datetime(
-        year=data["year"],
-        month=data["month"],
-        day=data["day"],
-        hour=data["hour"],
-        minute=data["minute"]
-    )
-    
-    deadline_dt = jalali_date.togregorian()
-    iran_tz = timezone(timedelta(hours=3, minutes=30))
-    deadline_local = deadline_dt.replace(tzinfo=iran_tz)
-    
-    now_iran = datetime.now(iran_tz)
-    
-    if deadline_local <= now_iran:
-        await message.answer(text="تاریخ انتخابی قبل از زمان فعلی است. لطفا یک تاریخ معتبر انتخاب کنید.")
+    deadline = jalali_to_gregorian(
+    year=data["year"],
+    month=data["month"],
+    day=data["day"],
+    hour=data["hour"],
+    minute=data["minute"],
+)
+
+    if is_past(deadline):
+        await message.answer(
+            text="تاریخ انتخابی قبل از زمان فعلی است. لطفا یک تاریخ معتبر انتخاب کنید."
+        )
         return
 
-    deadline_utc = deadline_local.astimezone(timezone.utc)
-    await state.update_data(deadline=deadline_utc.isoformat())
+    await state.update_data(
+        deadline=iran_to_naive(deadline).isoformat()
+    )
     
     jalali_text = f"{data['year']}/{data['month']:02d}/{data['day']:02d}  {data['hour']:02d}:{data['minute']:02d}"
     

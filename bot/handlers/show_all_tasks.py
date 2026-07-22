@@ -5,21 +5,11 @@ from bot.database.show_all_tasks import get_all_tasks
 from io import BytesIO
 from bot.keyboards.show_all_tasks import create_qr_keyboard
 from bot.services.qrcode import get_or_create_qr
-from datetime import datetime, timedelta, timezone
+from bot.utils.datetime import jalali_string
 from config import Config
-import jdatetime
 import aiohttp
 
 router = Router()
-
-IRAN_TZ = timezone(timedelta(hours=3, minutes=30))
-
-def format_jalali(dt: datetime, fmt: str = "%Y/%m/%d  %H:%M") -> str:
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    dt = dt.astimezone(IRAN_TZ)
-    jalali = jdatetime.datetime.fromgregorian(datetime=dt)
-    return jalali.strftime(fmt)
 
 @router.message(F.text == "🗂️ نمایش همه وظایف")
 async def show_all_tasks(message: Message):
@@ -31,19 +21,13 @@ async def show_all_tasks(message: Message):
             return
         
         for task in tasks:
-            jalali_created = format_jalali(task.created_at)
-            created_text = jalali_created
-            
-            try:
-                if isinstance(task.deadline, datetime):
-                    deadline_text = format_jalali(task.deadline)
-                else:
-                    deadline_dt = datetime.strptime(task.deadline, "%Y-%m-%d  %H:%M")
-                    deadline_dt = deadline_dt.replace(tzinfo=IRAN_TZ)
-                    deadline_text = format_jalali(deadline_dt)
-            except Exception:
-                deadline_text = str(task.deadline)
+            created_text = jalali_string(task.created_at)
                 
+            if task.deadline:
+                deadline_text = jalali_string(task.deadline)
+            else:
+                deadline_text = "_"
+                    
             text = (
                 f"🆔 شناسه: {task.id}\n"
                 f"📌 عنوان: {task.title}\n"
@@ -53,7 +37,7 @@ async def show_all_tasks(message: Message):
                 f"📂 وضعیت: {task.status}\n"
                 f"📆 اضافه شده در: {created_text}"
             )
-            
+                
             await message.answer(text=text, reply_markup=create_qr_keyboard(task.id))
 
 async def send_photo_to_bale(chat_id, img_bytes, caption=""):

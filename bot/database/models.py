@@ -1,7 +1,8 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import String, Integer, DateTime, Boolean
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime
+from bot.utils.datetime import iran_to_naive, now_iran
 
 class Base(DeclarativeBase):
     pass
@@ -16,6 +17,6 @@ class Tasks(Base):
     priority: Mapped[str] = mapped_column(String)
     deadline: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     status: Mapped[str] = mapped_column(String)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: iran_to_naive(now_iran()))
     reminder_sent: Mapped[bool] = mapped_column(Boolean, default=False)
-    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, default=None)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)

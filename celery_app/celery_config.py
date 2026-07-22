@@ -10,7 +10,14 @@ RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", BROKER_URL)
 app = Celery(
     "task_manager",
     broker=BROKER_URL,
-    backend=RESULT_BACKEND
+    backend=RESULT_BACKEND,
+    include=[
+        "celery_app.tasks.deadline_warning",
+    ]
+)
+
+app.autodiscover_tasks(
+    ["celery_app.tasks"]
 )
 
 app.conf.update(
@@ -25,8 +32,8 @@ app.conf.update(
 
 app.conf.beat_schedule = {
     "check-deadlines-every-1-minute": {
-        "task": "celery_app.tasks.deadline_warning",
+        "task": "celery_app.tasks.deadline_warning.check_deadlines",
         "schedule": 60.0,
         "args": (),
     }
-},
+}
