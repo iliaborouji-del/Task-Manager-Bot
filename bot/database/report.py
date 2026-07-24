@@ -23,59 +23,81 @@ def get_date_range(report_type: str):
     return start, now
 
 #----- total tasks -----
-async def get_total_tasks(session, user_id: int, start: datetime, end: datetime):
-    result = await session.execute(
-        select(Tasks).where(
+async def get_total_tasks(session, user_id: int, start: datetime, end: datetime, category_id=None):
+    query = select(Tasks).where(
             Tasks.user_id == user_id,
             Tasks.created_at.between(start, end)
         )
-    )
+    
+    if category_id is not None:
+        query = query.where(
+            Tasks.category_id == category_id
+        )
+
+    result = await session.execute(query)
     return result.scalars().all()
 
 #----- completed tasks -----
-async def get_completed_tasks(session, user_id: int, start: datetime, end: datetime):
-    result = await session.execute(
-        select(Tasks).where(
+async def get_completed_tasks(session, user_id: int, start: datetime, end: datetime, category_id=None):
+    query = select(Tasks).where(
             Tasks.user_id == user_id,
             Tasks.status == "انجام شده ✅",
             Tasks.created_at.between(start, end)
         )
-    )
+    if category_id is not None:
+        query = query.where(
+            Tasks.category_id == category_id
+        )
+
+    result = await session.execute(query)
     return result.scalars().all()
 
 #----- in progress tasks -----
-async def get_in_progress_tasks(session, user_id: int, start: datetime, end: datetime):
-    result = await session.execute(
-        select(Tasks).where(
+async def get_in_progress_tasks(session, user_id: int, start: datetime, end: datetime, category_id=None):
+    query = select(Tasks).where(
             Tasks.user_id == user_id,
             Tasks.status == "در حال انجام ⏳",
             Tasks.created_at.between(start, end)
         )
-    )
+    if category_id is not None:
+        query = query.where(
+            Tasks.category_id == category_id
+        )
+
+    result = await session.execute(query)
     return result.scalars().all()
 
 #----- not done tasks -----
-async def get_not_done_tasks(session, user_id: int, start: datetime, end: datetime):
-    result = await session.execute(
-        select(Tasks).where(
+async def get_not_done_tasks(session, user_id: int, start: datetime, end: datetime, category_id=None):
+    query = select(Tasks).where(
             Tasks.user_id == user_id,
             Tasks.status == "انجام نشده ⭕",
             Tasks.created_at.between(start, end)
         )
-    )
+    if category_id is not None:
+        query = query.where(
+            Tasks.category_id == category_id
+        )
+
+    result = await session.execute(query)
     return result.scalars().all()
 
 #----- overdue tasks -----
-async def get_overdue_tasks(session, user_id: int, start: datetime, end: datetime):
+async def get_overdue_tasks(session, user_id: int, start: datetime, end: datetime, category_id=None):
     now = iran_to_naive(now_iran())
     
-    result = await session.execute(
-        select(Tasks).where(
+    query = select(Tasks).where(
             Tasks.user_id == user_id,
             Tasks.status != "انجام شده ✅",
             Tasks.created_at.between(start, end)
         )
-    )
+    if category_id is not None:
+        query = query.where(
+            Tasks.category_id == category_id
+        )
+
+    result = await session.execute(query)
+    
     tasks = result.scalars().all()
     overdue = []
     for task in tasks:
@@ -117,13 +139,17 @@ def calc_on_time(completed_tasks):
             
 
 #----- get_most_active_day -----
-async def get_most_active_days(session, user_id: int, start: datetime, end: datetime):
-    result = await session.execute(
-        select(Tasks.created_at).where(
+async def get_most_active_days(session, user_id: int, start: datetime, end: datetime, category_id=None):
+    query = select(Tasks.created_at).where(
             Tasks.user_id == user_id,
             Tasks.created_at.between(start, end)
         )
-    )
+    if category_id is not None:
+        query = query.where(
+            Tasks.category_id == category_id
+        )
+
+    result = await session.execute(query)
     
     dates = [t.date() for t in result.scalars().all()]
     
@@ -148,11 +174,16 @@ def get_idle_days(start: datetime, end: datetime, active_dates: list):
     return idle
 
 #----- next deadline -----
-async def get_next_deadline(session, user_id: int):
+async def get_next_deadline(session, user_id: int, category_id=None):
     now = iran_to_naive(now_iran())
-    result = await session.execute(
-        select(Tasks).where(Tasks.user_id == user_id)
-    )
+    query = select(Tasks).where(Tasks.user_id == user_id)
+    if category_id is not None:
+        query = query.where(
+            Tasks.category_id == category_id
+        )
+
+    result = await session.execute(query)
+    
     tasks = result.scalars().all()
     nearest = None
 

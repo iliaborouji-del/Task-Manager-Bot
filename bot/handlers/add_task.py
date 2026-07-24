@@ -10,6 +10,8 @@ from bot.utils.datetime import (
 
 from bot.keyboards.start import create_main_menu_keyboard
 from bot.states.add_task import AddTaskStates, Deadline
+from bot.database.categories import get_all_categories
+from bot.keyboards.categories import create_categories_keyboard
 from bot.keyboards.add_task import (
     create_priority_keyboard,
     create_deadline_keyboard_year,
@@ -49,10 +51,35 @@ async def get_title(message: Message, state: FSMContext):
     
 @router.message(AddTaskStates.description)
 async def get_description(message: Message, state: FSMContext):
-    await state.update_data(description=message.text)
-    await message.answer(PRIORITY, reply_markup=create_priority_keyboard())
-    await state.set_state(AddTaskStates.priority)
+    async with session_scope() as session:
+        await state.update_data(description=message.text)
+        categories = await get_all_categories(session, message.from_user.id)
+
+    if not categories:
+        await message.answer(
+            "ابتدا باید حداقل یک دسته‌بندی بسازید."
+        )
+        await state.clear()
+        return
     
+
+    await message.answer(
+        "دسته‌بندی را انتخاب کنید:",
+        reply_markup=create_categories_keyboard(categories)
+    )
+    
+    await state.set_state(AddTaskStates.category)
+    
+@router.callback_query(AddTaskStates.category, F.data.startswith("category_select:"))
+async def get_category(call: CallbackQuery, state: FSMContext):
+    category_id = int(call.data.split(":")[1])
+
+    await state.update_data(category_id=category_id)
+    await call.message.answer(PRIORITY, reply_markup=create_priority_keyboard(),)
+    await state.set_state(AddTaskStates.priority)
+
+    await call.answer()
+
 @router.message(AddTaskStates.priority)
 async def get_priority(message: Message, state: FSMContext):
     if message.text not in [

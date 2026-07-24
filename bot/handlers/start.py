@@ -43,13 +43,15 @@ async def start(message: Message, state: FSMContext):
                 deadline_text = "_"
                 
             text = (
-                f"🆔 شناسه: {task.id}\n"
-                f"📌 عنوان: {task.title}\n"
-                f"📝 توضیحات: {task.description}\n"
-                f"📊 اولویت: {task.priority}\n"
-                f"⌛ ددلاین (زمان پایان): {deadline_text}\n"
-                f"📂 وضعیت: {task.status}\n"
-                f"📆 اضافه شده در: {created_text}"
+                "\u200F━━━━━━━━━━━━━━━━━━━━\n"
+                f"\u200F🆔 شناسه:  \u200E{task.id}\n"
+                f"📌 عنوان:  {task.title}\n"
+                f"📝 توضیحات:  {task.description}\n"
+                f"📊 اولویت:  {task.priority}\n"
+                f"⌛ ددلاین (زمان پایان): \u200E{deadline_text}\n"
+                f"📂 وضعیت:  {task.status}\n"
+                f"📆 اضافه شده:  \u200E{created_text}\n"
+                "\u200F━━━━━━━━━━━━━━━━━━━━"
             )
             await message.answer(text=text)
             return

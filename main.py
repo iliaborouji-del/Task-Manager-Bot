@@ -12,6 +12,7 @@ from bot.handlers.add_task import router as add_task
 from bot.handlers.show_tasks import router as show_tasks
 from bot.handlers.report import router as report
 from bot.handlers.show_all_tasks import router as all_tasks
+from bot.handlers.categories import router as category
 from bot.database.connection import create_db
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ dp.include_router(add_task)
 dp.include_router(show_tasks)
 dp.include_router(report)
 dp.include_router(all_tasks)
+dp.include_router(category)
     
 async def main():
     await create_db()

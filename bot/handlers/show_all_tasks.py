@@ -28,14 +28,23 @@ async def show_all_tasks(message: Message):
             else:
                 deadline_text = "_"
                     
+            category_name = (
+                task.category.name
+                if task.category
+                else "-"
+            )
+
             text = (
-                f"🆔 شناسه: {task.id}\n"
+                "\u200F━━━━━━━━━━━━━━━━━━━━\n"
+                f"\u200F🆔 شناسه: \u200E{task.id}\n"
+                f"📁 دسته‌بندی: {category_name}\n"
                 f"📌 عنوان: {task.title}\n"
                 f"📝 توضیحات: {task.description}\n"
                 f"📊 اولویت: {task.priority}\n"
-                f"⌛ ددلاین (زمان پایان): {deadline_text}\n"
+                f"⌛ ددلاین: \u200E{deadline_text}\n"
                 f"📂 وضعیت: {task.status}\n"
-                f"📆 اضافه شده در: {created_text}"
+                f"📆 اضافه شده: \u200E{created_text}\n"
+                "\u200F━━━━━━━━━━━━━━━━━━━━"
             )
                 
             await message.answer(text=text, reply_markup=create_qr_keyboard(task.id))

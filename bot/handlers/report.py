@@ -1,12 +1,16 @@
 from aiogram.filters import StateFilter
 from aiogram import F, Router
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
-from bot.keyboards.report import create_report_keyboard
 from bot.keyboards.start import create_main_menu_keyboard
 from bot.database.connection import session_scope
 from bot.states.report import ReportState
 from bot.utils.datetime import jalali_string, jalali_date_string
+from bot.database.categories import get_all_categories
+from bot.keyboards.report import (
+    create_report_keyboard,
+    create_report_categories_keyboard,
+)
 from bot.database.report import (
     get_total_tasks,
     get_overdue_tasks,
@@ -30,8 +34,42 @@ async def return_to_menu(message: Message, state: FSMContext):
 
 @router.message(F.text == "📢 گزارش وظایف")
 async def report_message(message: Message, state: FSMContext):
-    await message.answer(text="بازه زمانی را مشخص کنید:", reply_markup=create_report_keyboard())
-    await state.set_state(ReportState.waiting_for_date_range)
+    async with session_scope() as session:
+        categories = await get_all_categories(
+            session=session,
+            user_id=message.from_user.id,
+        )
+
+    await message.answer(
+        text="دسته‌بندی موردنظر را انتخاب کنید:",
+        reply_markup=create_report_categories_keyboard(categories)
+    )
+
+    await state.set_state(ReportState.waiting_for_category)
+    
+@router.callback_query(ReportState.waiting_for_category, F.data.startswith("report_category:"))
+async def report_category_selected(call: CallbackQuery, state: FSMContext):
+    value = call.data.split(":")[1]
+
+    if value == "all":
+        category_id = None
+    else:
+        category_id = int(value)
+
+    await state.update_data(
+        category_id=category_id
+    )
+
+    await call.message.answer(
+        text="بازه زمانی را مشخص کنید:",
+        reply_markup=create_report_keyboard(),
+    )
+
+    await state.set_state(
+        ReportState.waiting_for_date_range
+    )
+
+    await call.answer()
     
 @router.message(ReportState.waiting_for_date_range)
 async def show_report(message: Message, state: FSMContext):
@@ -50,11 +88,15 @@ async def show_report(message: Message, state: FSMContext):
         
         user_id = message.from_user.id
         
-        total_tasks = await get_total_tasks(session, user_id, start, end)
-        completed_tasks = await get_completed_tasks(session, user_id, start, end)
-        doing_tasks = await get_in_progress_tasks(session, user_id, start, end)
-        not_done_tasks = await get_not_done_tasks(session, user_id, start, end)
-        overdue_tasks = await get_overdue_tasks(session, user_id, start, end)
+        data = await state.get_data()
+
+        category_id = data.get("category_id")
+        
+        total_tasks = await get_total_tasks(session, user_id, start, end, category_id)
+        completed_tasks = await get_completed_tasks(session, user_id, start, end, category_id)
+        doing_tasks = await get_in_progress_tasks(session, user_id, start, end, category_id)
+        not_done_tasks = await get_not_done_tasks(session, user_id, start, end, category_id)
+        overdue_tasks = await get_overdue_tasks(session, user_id, start, end, category_id)
         
         completion_rate = calc_completion_rate(len(total_tasks), len(completed_tasks))
         on_time = calc_on_time(completed_tasks)
@@ -79,20 +121,23 @@ async def show_report(message: Message, state: FSMContext):
             next_deadline_text = "_"
             
         text = (
-            "\u200F----------\n"
+            "\u200F━━━━━━━━━━━━━━\n"
+            "📊 گزارش فعالیت\n"
+            "\u200F━━━━━━━━━━━━━━\n\n"
+
             f"📋 مجموع وظایف: {len(total_tasks)}\n"
-            f"✅ انجام شده: {len(completed_tasks)}\n"
+            f"✅ انجام‌شده: {len(completed_tasks)}\n"
             f"⏳ در حال انجام: {len(doing_tasks)}\n"
-            f"⭕ انجام نشده: {len(not_done_tasks)}\n"
-            f"⌛ عقب افتاده: {len(overdue_tasks)}\n"
-            "\u200F----------\n"
-            f"📈 نرخ تکمیل: {completion_rate}%\n"
-            f"⏰ انجام به موقع: {on_time}%\n"
-            f"🔥 فعال ترین روز: {active_day_text} ({active_count} وظیفه)\n"
-            f"😴 روز های بدون فعالیت: {idle_days_count}\n"
-            f"⚠️ نزدیک ترین ددلاین: {next_deadline_text}\n"
-            "\u200F----------\n"
-            "ادامه دهید 💪"
+            f"⭕ انجام‌نشده: {len(not_done_tasks)}\n"
+            f"⌛ عقب‌افتاده: {len(overdue_tasks)}\n\n"
+
+            f"📈 نرخ تکمیل: \u200E{completion_rate}%\n"
+            f"⏰ انجام به‌موقع: \u200E{on_time}%\n"
+            f"🔥 فعال‌ترین روز: {active_day_text} ({active_count} وظیفه)\n"
+            f"😴 روزهای بدون فعالیت: {idle_days_count}\n"
+            f"⚠️ نزدیک‌ترین ددلاین: \u200E{next_deadline_text}\n\n"
+
+            "💪 به همین روند ادامه بده!"
         )
         
         await message.answer(text=text)
