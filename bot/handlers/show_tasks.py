@@ -4,6 +4,9 @@ from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery, BufferedInputFile
 from bot.database.delete_task import delete_task_by_id
 from bot.database.connection import session_scope
+from bot.database.categories import get_all_categories
+from bot.keyboards.categories import create_show_tasks_categories_keyboard
+from bot.keyboards.start import create_main_menu_keyboard
 from bot.keyboards.show_tasks import (
     create_change_status_keyboard,
     create_delete_keyboard
@@ -26,25 +29,50 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 @router.message(F.text == "📋 نمایش وظایف انجام نشده")
-async def show_tasks(message: Message):
+async def select_category(message: Message):
     async with session_scope() as session:
-        tasks = await show_not_completed_tasks(session=session, user_id=message.from_user.id)
-        
+            categories = await get_all_categories(
+                session=session,
+                user_id=message.from_user.id,
+            )
+    
+            if not categories:
+                await message.answer(text="هنوز هیچ دسته‌بندی ایجاد نکرده‌اید.")
+                return
+            
+            await message.answer(
+                text="دسته‌بندی موردنظر را برای نمایش انتخاب کنید.",
+                reply_markup=create_show_tasks_categories_keyboard(categories),
+            )
+@router.callback_query(F.data.startswith("show_tasks_category:"))
+async def show_tasks(call: CallbackQuery):
+    category_id = int(call.data.split(":")[1])
+
+    async with session_scope() as session:
+        tasks = await show_not_completed_tasks(
+            session=session,
+            user_id=call.from_user.id,
+            category_id=category_id,
+        )
+
         if not tasks:
-            await message.answer(text="هیچ وظیفه انجام نشده ای وجود ندارد.")
+            await call.message.answer(
+                text="هیچ وظیفه انجام‌نشده‌ای در این دسته‌بندی وجود ندارد."
+            )
+            await call.answer()
             return
-        
+
         for task in tasks:
             try:
                 created_text = jalali_string(task.created_at)
             except Exception:
                 created_text = str(task.created_at)
-                
+
             if task.deadline:
                 deadline_text = jalali_string(task.deadline)
             else:
                 deadline_text = "_"
-                
+
             category_name = (
                 task.category.name
                 if task.category
@@ -63,17 +91,25 @@ async def show_tasks(message: Message):
                 f"📆 اضافه شده: \u200E{created_text}\n"
                 "\u200F━━━━━━━━━━━━━━━━━━━━"
             )
-            
+
             if task.status == "در حال انجام ⏳":
-                await message.answer(
+                await call.message.answer(
                     text=text,
-                    reply_markup=create_change_status_keyboard(task.id, "در حال انجام ⏳")
+                    reply_markup=create_change_status_keyboard(
+                        task.id,
+                        "در حال انجام ⏳",
+                    ),
                 )
             else:
-                await message.answer(
+                await call.message.answer(
                     text=text,
-                    reply_markup=create_change_status_keyboard(task.id, "انجام نشده ⭕")
+                    reply_markup=create_change_status_keyboard(
+                        task.id,
+                        "انجام نشده ⭕",
+                    ),
                 )
+
+        await call.answer()
         
 @router.callback_query(F.data.startswith("task:"))
 async def change_status(call: CallbackQuery):
@@ -201,4 +237,15 @@ async def send_qr_code(call: CallbackQuery):
         # await call.message.answer_photo(photo=BufferedInputFile(bio, bio.name), caption=f"بارکد وظیفه {task_id}")
         await send_photo_to_bale(call.from_user.id, img_bytes, f"بارکد وظیفه {task_id}")
         
+    await call.answer()
+
+@router.callback_query(F.data == "show_tasks_back")
+async def show_tasks_back(call: CallbackQuery):
+    await call.message.delete()
+
+    await call.message.answer(
+        text="منوی اصلی",
+        reply_markup=create_main_menu_keyboard(),
+    )
+
     await call.answer()

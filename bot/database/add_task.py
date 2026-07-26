@@ -14,7 +14,7 @@ async def save_task(session, user_id, data):
         user_id=user_id,
         title=data["title"],
         description=data["description"],
-        category_id=data.get("category_id"),
+        category_id=data["category_id"],
         priority=data["priority"],
         deadline=deadline,
         status=data["status"],

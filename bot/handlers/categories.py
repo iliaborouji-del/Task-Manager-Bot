@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from bot.database.connection import session_scope
-from bot.keyboards.add_task import create_cancel_keyboard
+from bot.keyboards.start import create_main_menu_keyboard
 from bot.database.categories import (
     create_category,
     category_exists,
@@ -11,9 +11,10 @@ from bot.database.categories import (
 from bot.keyboards.categories import (
     create_categories_menu,
     create_categories_keyboard,
+    create_category_cancel_keyboard,
+    create_edit_delete_reply_keyboard,
+    create_move_tasks_keyboard,
 )
-from bot.keyboards.categories import create_move_tasks_keyboard
-from bot.keyboards.start import create_main_menu_keyboard
 from bot.states.categories import CategoriesStates
 from bot.database.categories import (
     rename_category,
@@ -25,11 +26,33 @@ from bot.database.categories import (
     category_has_tasks,
     get_other_categories,
 )
-from bot.keyboards.categories import (
-        create_edit_delete_keyboard
-    )
 
 router = Router()
+
+@router.message(
+    CategoriesStates.waiting_for_category_name,
+    F.text == "لغو ❌",
+)
+@router.message(
+    CategoriesStates.waiting_for_new_category_name,
+    F.text == "لغو ❌",
+)
+@router.message(
+    CategoriesStates.waiting_for_move_category,
+    F.text == "لغو ❌",
+)
+@router.message(
+    CategoriesStates.selected_category,
+    F.text == "لغو ❌",
+)
+async def cancel_categories(message: Message, state: FSMContext):
+    await state.clear()
+
+    await message.answer(
+        text="لغو شد.",
+        reply_markup=create_categories_menu(),
+    )
+
 
 @router.message(F.text == "🗄️ مدیریت دسته‌ بندی‌ ها")
 async def categories_menu(message: Message, state: FSMContext):
@@ -39,12 +62,19 @@ async def categories_menu(message: Message, state: FSMContext):
         text="یکی از گزینه‌های زیر را انتخاب کنید.",
         reply_markup=create_categories_menu(),
     )
+    
+    await state.set_state(CategoriesStates.wating_for_choose)
+    
+@router.message(CategoriesStates.wating_for_choose, F.text == "بازگشت ↪️")
+async def return_to_main_menu(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer(text="منوی اصلی", reply_markup=create_main_menu_keyboard())
 
 @router.message(F.text == "➕ اضافه کردن دسته‌بندی")
 async def add_category(message: Message, state: FSMContext):
     await message.answer(
         text="نام دسته‌بندی جدید را وارد کنید:",
-        reply_markup=create_cancel_keyboard()
+        reply_markup=create_category_cancel_keyboard()
     )
     await state.set_state(CategoriesStates.waiting_for_category_name)
 
@@ -99,33 +129,29 @@ async def show_categories(message: Message):
     )
 
 @router.callback_query(F.data.startswith("category_select:"))
-async def select_category(call: CallbackQuery):
-    category_id = int(
-        call.data.split(":")[1]
-    )
+async def select_category(call: CallbackQuery, state: FSMContext):
+    category_id = int(call.data.split(":")[1])
 
-    await call.message.edit_text(
+    await state.update_data(category_id=category_id)
+    
+    await state.set_state(CategoriesStates.selected_category)
+
+    await call.message.delete()
+
+    await call.message.answer(
         text="عملیات موردنظر را انتخاب کنید:",
-        reply_markup=create_edit_delete_keyboard(category_id)
+        reply_markup=create_edit_delete_reply_keyboard(),
     )
 
     await call.answer()
 
-@router.callback_query(F.data.startswith("category_edit:"))
-async def edit_category(call: CallbackQuery, state: FSMContext):
-    category_id = int(
-        call.data.split(":")[1]
-    )
-
-    await state.update_data(category_id=category_id)
-
-    await call.message.answer(text="نام جدید دسته‌بندی را وارد کنید:")
+@router.message(CategoriesStates.selected_category, F.text == "✏️ اصلاح")
+async def edit_category(message: Message, state: FSMContext):
+    await message.answer(text="نام جدید دسته‌بندی را وارد کنید:")
 
     await state.set_state(
         CategoriesStates.waiting_for_new_category_name
     )
-
-    await call.answer()
 
 @router.message(CategoriesStates.waiting_for_new_category_name)
 async def save_new_category_name(message: Message, state: FSMContext):
@@ -177,70 +203,91 @@ async def save_new_category_name(message: Message, state: FSMContext):
         text="✅ نام دسته‌بندی با موفقیت تغییر کرد.",
         reply_markup=create_categories_menu(),
     )
+    
+@router.message(
+    CategoriesStates.selected_category,
+    F.text == "بازگشت ↪️",
+)
+async def back_to_categories(message: Message, state: FSMContext):
+    await state.clear()
 
+    async with session_scope() as session:
+        categories = await get_all_categories(
+            session=session,
+            user_id=message.from_user.id,
+        )
+
+    if not categories:
+        await message.answer(
+            text="هنوز هیچ دسته‌بندی ایجاد نکرده‌اید.",
+            reply_markup=create_categories_menu(),
+        )
+        return
+
+    await message.answer(
+        text="دسته‌بندی موردنظر را انتخاب کنید:",
+        reply_markup=create_categories_keyboard(categories),
+    )
+    
 @router.callback_query(F.data == "categories_back")
 async def categories_back(call: CallbackQuery):
     await call.message.delete()
 
     await call.message.answer(
-        text="مدیریت دسته‌بندی‌ها",
+        text="مدیریت دسته ‌بندی‌ ها",
         reply_markup=create_categories_menu(),
     )
 
     await call.answer()
 
-@router.callback_query(F.data.startswith("category_delete:"))
-async def delete_category_start(call: CallbackQuery, state: FSMContext):
-    category_id = int(call.data.split(":")[1])
+@router.message(CategoriesStates.selected_category, F.text == "🗑️ حذف")
+async def delete_category_start(message: Message, state: FSMContext):
+    data = await state.get_data()
+
+    category_id = data["category_id"]
 
     async with session_scope() as session:
         has_tasks = await category_has_tasks(
             session=session,
             category_id=category_id,
-            user_id=call.from_user.id,
+            user_id=message.from_user.id,
         )
 
         if not has_tasks:
             await delete_category(
                 session=session,
                 category_id=category_id,
-                user_id=call.from_user.id,
+                user_id=message.from_user.id,
             )
-            await call.message.edit_text(
+            await message.answer(
                 "✅ دسته‌بندی حذف شد."
             )
-
-            await call.answer()
             return
 
         categories = await get_other_categories(
             session=session,
-            user_id=call.from_user.id,
+            user_id=message.from_user.id,
             category_id=category_id,
         )
 
     if not categories:
-        await call.message.edit_text(
+        await message.answer(
             text="این دسته‌بندی دارای وظیفه است.\n\n"
                  "ابتدا یک دسته‌بندی دیگر ایجاد کنید."
         )
-
-        await call.answer()
         return
 
     await state.update_data(source_category_id=category_id)
 
     
 
-    await call.message.edit_text(
+    await message.answer(
         text="این دسته‌بندی دارای وظیفه است.\n\n"
              "وظایف را به کدام دسته‌بندی منتقل کنم؟",
         reply_markup=create_move_tasks_keyboard(categories)
     )
 
     await state.set_state(CategoriesStates.waiting_for_move_category)
-
-    await call.answer()
 
 @router.callback_query(CategoriesStates.waiting_for_move_category, F.data.startswith("move_category:"))
 async def move_tasks(call: CallbackQuery, state: FSMContext):
@@ -266,6 +313,6 @@ async def move_tasks(call: CallbackQuery, state: FSMContext):
 
     await state.clear()
 
-    await call.message.edit_text(text="✅ تمام وظایف منتقل شدند و دسته‌بندی حذف شد.")
+    await call.message.edit_text(text="✅ تمام وظایف منتقل شدند و دسته‌بندی حذف شد.", reply_markup=create_edit_delete_reply_keyboard())
 
     await call.answer()

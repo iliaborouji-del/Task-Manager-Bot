@@ -15,13 +15,18 @@ def create_categories_menu() -> ReplyKeyboardMarkup:
         resize_keyboard=True,
     )
 
-def create_edit_delete_keyboard(category_id: int) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="✏️ اصلاح", callback_data=f"category_edit:{category_id}"),
-            InlineKeyboardButton(text="🗑️ حذف", callback_data=f"category_delete:{category_id}")],
-            [InlineKeyboardButton(text="بازگشت ↪️", callback_data="categories_back")]
-        ]
+def create_edit_delete_reply_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text="✏️ اصلاح"),
+                KeyboardButton(text="🗑️ حذف"),
+            ],
+            [
+                KeyboardButton(text="بازگشت ↪️"),
+            ],
+        ],
+        resize_keyboard=True,
     )
 
 def create_categories_keyboard(categories) -> InlineKeyboardMarkup:
@@ -45,6 +50,54 @@ def create_categories_keyboard(categories) -> InlineKeyboardMarkup:
         ]
     )
     
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+def create_show_tasks_categories_keyboard(categories) -> InlineKeyboardMarkup:
+    keyboard = []
+
+    for category in categories:
+        keyboard.append(
+            [
+                InlineKeyboardButton(
+                    text=category.name,
+                    callback_data=f"show_tasks_category:{category.id}",
+                )
+            ]
+        )
+
+    keyboard.append(
+        [
+            InlineKeyboardButton(
+                text="بازگشت ↪️",
+                callback_data="show_tasks_back",
+            )
+        ]
+    )
+
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+def create_show_all_tasks_categories_keyboard(categories) -> InlineKeyboardMarkup:
+    keyboard = []
+
+    for category in categories:
+        keyboard.append(
+            [
+                InlineKeyboardButton(
+                    text=category.name,
+                    callback_data=f"show_all_tasks_category:{category.id}",
+                )
+            ]
+        )
+
+    keyboard.append(
+        [
+            InlineKeyboardButton(
+                text="بازگشت ↪️",
+                callback_data="show_all_tasks_back",
+            )
+        ]
+    )
+
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 def create_move_tasks_keyboard(categories) -> InlineKeyboardMarkup:
@@ -103,3 +156,12 @@ def create_task_categories_keyboard(categories) -> InlineKeyboardMarkup:
     )
 
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+def create_category_cancel_keyboard():
+    markup = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="لغو ❌")]
+        ],
+        resize_keyboard=True
+    )
+    return markup

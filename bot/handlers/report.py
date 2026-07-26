@@ -27,7 +27,12 @@ from bot.database.report import (
 
 router = Router()
 
-@router.message(StateFilter("*"), F.text == "بازگشت ↪️")
+@router.message(ReportState.waiting_for_category, F.text == "بازگشت ↪️")
+async def return_to_menu(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer(text="منوی اصلی", reply_markup=create_main_menu_keyboard())
+
+@router.message(ReportState.waiting_for_date_range, F.text == "بازگشت ↪️")
 async def return_to_menu(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(text="منوی اصلی", reply_markup=create_main_menu_keyboard())

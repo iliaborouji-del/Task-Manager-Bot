@@ -6,28 +6,56 @@ from io import BytesIO
 from bot.keyboards.show_all_tasks import create_qr_keyboard
 from bot.services.qrcode import get_or_create_qr
 from bot.utils.datetime import jalali_string
+from bot.keyboards.categories import create_show_all_tasks_categories_keyboard
+from bot.database.categories import get_all_categories
 from config import Config
 import aiohttp
 
 router = Router()
 
 @router.message(F.text == "🗂️ نمایش همه وظایف")
-async def show_all_tasks(message: Message):
+async def select_category(message: Message):
     async with session_scope() as session:
-        tasks = await get_all_tasks(session=session, user_id=message.from_user.id)
+            categories = await get_all_categories(
+                session=session,
+                user_id=message.from_user.id,
+            )
+    
+            if not categories:
+                await message.answer(text="هنوز هیچ دسته‌بندی ایجاد نکرده‌اید.")
+                return
+            
+            await message.answer(
+                text="دسته‌ بندی مورد نظر را برای نمایش انتخاب کنید.",
+                reply_markup=create_show_all_tasks_categories_keyboard(categories)
+        )
+
+@router.callback_query(F.data.startswith("show_all_tasks_category:"))
+async def show_all_tasks(call: CallbackQuery):
+    category_id = int(call.data.split(":")[1])
+
+    async with session_scope() as session:
+        tasks = await get_all_tasks(
+            session=session,
+            user_id=call.from_user.id,
+            category_id=category_id,
+        )
 
         if not tasks:
-            await message.answer(text="هیچ وظیفه ای ثبت نشده است.")
+            await call.message.answer(
+                text="هیچ وظیفه‌ای در این دسته‌بندی ثبت نشده است."
+            )
+            await call.answer()
             return
-        
+
         for task in tasks:
             created_text = jalali_string(task.created_at)
-                
+
             if task.deadline:
                 deadline_text = jalali_string(task.deadline)
             else:
                 deadline_text = "_"
-                    
+
             category_name = (
                 task.category.name
                 if task.category
@@ -46,9 +74,14 @@ async def show_all_tasks(message: Message):
                 f"📆 اضافه شده: \u200E{created_text}\n"
                 "\u200F━━━━━━━━━━━━━━━━━━━━"
             )
-                
-            await message.answer(text=text, reply_markup=create_qr_keyboard(task.id))
 
+            await call.message.answer(
+                text=text,
+                reply_markup=create_qr_keyboard(task.id),
+            )
+
+        await call.answer()
+            
 async def send_photo_to_bale(chat_id, img_bytes, caption=""):
     url = f"{Config.API_BASE_BALE}/bot{Config.BOT_TOKEN}/sendPhoto"
         
@@ -89,4 +122,17 @@ async def send_qr_code(call: CallbackQuery):
         # await call.message.answer_photo(photo=BufferedInputFile(bio, bio.name), caption=f"بارکد وظیفه {task_id}")
         await send_photo_to_bale(call.from_user.id, img_bytes, f"بارکد وظیفه {task_id}")
         
+    await call.answer()
+    
+from bot.keyboards.start import create_main_menu_keyboard
+
+@router.callback_query(F.data == "show_all_tasks_back")
+async def show_all_tasks_back(call: CallbackQuery):
+    await call.message.delete()
+
+    await call.message.answer(
+        text="منوی اصلی",
+        reply_markup=create_main_menu_keyboard(),
+    )
+
     await call.answer()

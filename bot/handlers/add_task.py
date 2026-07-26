@@ -57,7 +57,8 @@ async def get_description(message: Message, state: FSMContext):
 
     if not categories:
         await message.answer(
-            "ابتدا باید حداقل یک دسته‌بندی بسازید."
+            text="ابتدا باید حداقل یک دسته‌بندی بسازید.",
+            reply_markup=create_main_menu_keyboard()
         )
         await state.clear()
         return
@@ -163,9 +164,32 @@ async def get_time(message: Message, state: FSMContext):
 )
 
     if is_past(deadline):
-        await message.answer(
-            text="تاریخ انتخابی قبل از زمان فعلی است. لطفا یک تاریخ معتبر انتخاب کنید."
+        data = await state.get_data()
+
+        await state.set_data(
+            {
+                "title": data["title"],
+                "description": data["description"],
+                "category_id": data["category_id"],
+                "priority": data["priority"],
+            }
         )
+
+        await state.set_state(Deadline.year)
+
+        await message.answer(
+            text=(
+                "تاریخ انتخابی قبل از زمان فعلی است.\n"
+                "لطفاً تاریخ جدید را انتخاب کنید."
+            ),
+            reply_markup=create_deadline_keyboard_year(),
+        )
+
+        await message.answer(
+            text="برای لغو دکمه زیر را بزنید.",
+            reply_markup=create_cancel_keyboard(),
+        )
+
         return
 
     await state.update_data(
