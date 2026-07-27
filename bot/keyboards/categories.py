@@ -160,7 +160,7 @@ def create_task_categories_keyboard(categories) -> InlineKeyboardMarkup:
 def create_category_cancel_keyboard():
     markup = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="لغو ❌")]
+            [KeyboardButton(text="❌ لغو")]
         ],
         resize_keyboard=True
     )

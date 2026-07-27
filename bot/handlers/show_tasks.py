@@ -1,4 +1,4 @@
-import jdatetime
+from sqlalchemy.orm import selectinload
 from datetime import datetime
 from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery, BufferedInputFile
@@ -95,18 +95,12 @@ async def show_tasks(call: CallbackQuery):
             if task.status == "در حال انجام ⏳":
                 await call.message.answer(
                     text=text,
-                    reply_markup=create_change_status_keyboard(
-                        task.id,
-                        "در حال انجام ⏳",
-                    ),
+                    reply_markup=create_change_status_keyboard(task.id, "انجام نشده ⭕")
                 )
             else:
                 await call.message.answer(
                     text=text,
-                    reply_markup=create_change_status_keyboard(
-                        task.id,
-                        "انجام نشده ⭕",
-                    ),
+                    reply_markup=create_change_status_keyboard(task.id, "در حال انجام ⏳",)
                 )
 
         await call.answer()
@@ -116,7 +110,11 @@ async def change_status(call: CallbackQuery):
     async with session_scope() as session:
         _, task_id, new_status = call.data.split(":")
         task_id = int(task_id)
-        result = await session.execute(select(Tasks).where(Tasks.id == task_id))
+        result = await session.execute(
+            select(Tasks)
+            .options(selectinload(Tasks.category))
+            .where(Tasks.id == task_id)
+        )
         task = result.scalar_one_or_none()
         
         if not task:
@@ -171,12 +169,12 @@ async def change_status(call: CallbackQuery):
         elif new_status == "در حال انجام ⏳":
             await call.message.edit_text(
                 text=new_text, 
-                reply_markup=create_change_status_keyboard(task.id, "در حال انجام ⏳")
+                reply_markup=create_change_status_keyboard(task.id, "انجام نشده ⭕")
             )
         else:
             await call.message.edit_text(
                 text=new_text, 
-                reply_markup=create_change_status_keyboard(task.id, "انجام نشده ⭕")
+                reply_markup=create_change_status_keyboard(task.id, "در حال انجام ⏳")
             )
             
         await call.answer(text="وضعیت با موفقیت تغییر کرد.")

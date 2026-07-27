@@ -29,31 +29,6 @@ from bot.database.categories import (
 
 router = Router()
 
-@router.message(
-    CategoriesStates.waiting_for_category_name,
-    F.text == "لغو ❌",
-)
-@router.message(
-    CategoriesStates.waiting_for_new_category_name,
-    F.text == "لغو ❌",
-)
-@router.message(
-    CategoriesStates.waiting_for_move_category,
-    F.text == "لغو ❌",
-)
-@router.message(
-    CategoriesStates.selected_category,
-    F.text == "لغو ❌",
-)
-async def cancel_categories(message: Message, state: FSMContext):
-    await state.clear()
-
-    await message.answer(
-        text="لغو شد.",
-        reply_markup=create_categories_menu(),
-    )
-
-
 @router.message(F.text == "🗄️ مدیریت دسته‌ بندی‌ ها")
 async def categories_menu(message: Message, state: FSMContext):
     await state.clear()
@@ -65,10 +40,7 @@ async def categories_menu(message: Message, state: FSMContext):
     
     await state.set_state(CategoriesStates.wating_for_choose)
     
-@router.message(CategoriesStates.wating_for_choose, F.text == "بازگشت ↪️")
-async def return_to_main_menu(message: Message, state: FSMContext):
-    await state.clear()
-    await message.answer(text="منوی اصلی", reply_markup=create_main_menu_keyboard())
+
 
 @router.message(F.text == "➕ اضافه کردن دسته‌بندی")
 async def add_category(message: Message, state: FSMContext):
@@ -77,6 +49,19 @@ async def add_category(message: Message, state: FSMContext):
         reply_markup=create_category_cancel_keyboard()
     )
     await state.set_state(CategoriesStates.waiting_for_category_name)
+    
+@router.message(
+    CategoriesStates.waiting_for_category_name,
+    F.text == "❌ لغو"
+)
+async def cancel_categories(message: Message, state: FSMContext):
+    await state.clear()
+
+    await message.answer(
+        text="لغو شد.",
+        reply_markup=create_categories_menu(),
+    )
+    await state.set_state(CategoriesStates.wating_for_choose)
 
 @router.message(CategoriesStates.waiting_for_category_name)
 async def save_category(message: Message, state: FSMContext):
@@ -104,12 +89,11 @@ async def save_category(message: Message, state: FSMContext):
             name=name,
         )
 
-    await state.clear()
-
     await message.answer(
         text="✅ دسته‌بندی با موفقیت ایجاد شد.",
         reply_markup=create_categories_menu(),
     )
+    await state.set_state(CategoriesStates.wating_for_choose)
 
 @router.message(F.text == "✏️ اصلاح یا حذف دسته‌بندی")
 async def show_categories(message: Message):
@@ -197,17 +181,13 @@ async def save_new_category_name(message: Message, state: FSMContext):
             new_name=new_name,
         )
 
-    await state.clear()
-
     await message.answer(
         text="✅ نام دسته‌بندی با موفقیت تغییر کرد.",
         reply_markup=create_categories_menu(),
     )
+    await state.set_state(CategoriesStates.wating_for_choose)
     
-@router.message(
-    CategoriesStates.selected_category,
-    F.text == "بازگشت ↪️",
-)
+@router.message(CategoriesStates.selected_category, F.text == "بازگشت ↪️")
 async def back_to_categories(message: Message, state: FSMContext):
     await state.clear()
 
@@ -230,14 +210,14 @@ async def back_to_categories(message: Message, state: FSMContext):
     )
     
 @router.callback_query(F.data == "categories_back")
-async def categories_back(call: CallbackQuery):
+async def categories_back(call: CallbackQuery, state: FSMContext):
     await call.message.delete()
 
     await call.message.answer(
         text="مدیریت دسته ‌بندی‌ ها",
         reply_markup=create_categories_menu(),
     )
-
+    await state.set_state(CategoriesStates.wating_for_choose)
     await call.answer()
 
 @router.message(CategoriesStates.selected_category, F.text == "🗑️ حذف")
@@ -316,3 +296,9 @@ async def move_tasks(call: CallbackQuery, state: FSMContext):
     await call.message.edit_text(text="✅ تمام وظایف منتقل شدند و دسته‌بندی حذف شد.", reply_markup=create_edit_delete_reply_keyboard())
 
     await call.answer()
+       
+@router.message(CategoriesStates.wating_for_choose, F.text == "بازگشت ↪️")
+async def return_to_main_menu(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer(text="منوی اصلی", reply_markup=create_main_menu_keyboard())
+
