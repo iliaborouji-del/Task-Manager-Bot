@@ -4,3 +4,5 @@ venv/
 __pycache__/
 *.db
 celerybeat-schedule
+.env.telegram.prod
+.env.bale.prod

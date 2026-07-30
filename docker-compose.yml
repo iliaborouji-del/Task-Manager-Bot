@@ -1,0 +1,44 @@
+services:
+
+  bot:
+    build: .
+    container_name: task_manager_bot
+    restart: unless-stopped
+    command: python main.py
+    env_file:
+      - .env.telegram.prod
+    depends_on:
+      - redis
+    volumes:
+      - ./tasks.db:/app/tasks.db
+
+  redis:
+    image: redis:7-alpine
+    container_name: task_manager_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  worker:
+    build: .
+    container_name: task_manager_worker
+    restart: unless-stopped
+    command: celery -A celery_app.celery_config:app worker --loglevel=info
+    env_file:
+      - .env.telegram.prod
+    depends_on:
+      - redis
+    volumes:
+      - ./tasks.db:/app/tasks.db
+
+  beat:
+    build: .
+    container_name: task_manager_beat
+    restart: unless-stopped
+    command: celery -A celery_app.celery_config:app beat --loglevel=info
+    env_file:
+      - .env.telegram.prod
+    depends_on:
+      - redis
+    volumes:
+      - ./tasks.db:/app/tasks.db

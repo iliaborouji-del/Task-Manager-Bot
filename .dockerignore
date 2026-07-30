@@ -1,0 +1,45 @@
+# Git
+.git
+.gitignore
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.telegram.prod
+!.env.bale.prod
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Build
+build/
+dist/
+
+# Python test cache
+.pytest_cache/
+.mypy_cache/
+
+# Runtime
+tasks.db
+celerybeat-schedule
