@@ -49,3 +49,14 @@ class Categories(Base):
         back_populates="category",
         cascade="all, delete-orphan",
     )
+    
+class Users(Base):
+    __tablename__ = "users"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, unique=True, nullable=False)
+    full_name: Mapped[str] = mapped_column(String, nullable=False)
+    username: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    is_blocked: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: iran_to_naive(now_iran()))
+    last_activity: Mapped[datetime] = mapped_column(DateTime, default=lambda: iran_to_naive(now_iran()))

@@ -9,24 +9,31 @@ from bot.database.models import Tasks
 from sqlalchemy import select
 from bot.utils.datetime import jalali_string
 from bot.templates.start import start_text
+from bot.database.users import register_user
 import urllib.parse
 
 router = Router()
 
 @router.message(filters.CommandStart())
 async def start(message: Message, state: FSMContext):
-    text = message.text.strip()
-    parts = text.split(maxsplit=1)
-    if len(parts) > 1 and parts[1].startswith("task_"):
-        raw = parts[1]
-        token = raw[len("task_"):]
-        token = urllib.parse.unquote_plus(token)
-        task_id = verify(token=token)
-        if not task_id:
-            await message.answer(text="لینک نامعتبر یا منقضی شده است.")
-            return
+    async with session_scope() as session:
+        await register_user(
+            session=session,
+            user_id=message.from_user.id,
+            full_name=message.from_user.full_name,
+            username=message.from_user.username
+        )
+        text = message.text.strip()
+        parts = text.split(maxsplit=1)
+        if len(parts) > 1 and parts[1].startswith("task_"):
+            raw = parts[1]
+            token = raw[len("task_"):]
+            token = urllib.parse.unquote_plus(token)
+            task_id = verify(token=token)
+            if not task_id:
+                await message.answer(text="لینک نامعتبر یا منقضی شده است.")
+                return
         
-        async with session_scope() as session:
             result = await session.execute(select(Tasks).where(Tasks.id == task_id))
             task = result.scalar_one_or_none()
             if not task:

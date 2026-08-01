@@ -14,6 +14,7 @@ from bot.handlers.report import router as report
 from bot.handlers.show_all_tasks import router as all_tasks
 from bot.handlers.categories import router as category
 from bot.database.connection import create_db
+from bot.handlers.admin import router as admin
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ redis = Redis(
 storage = RedisStorage(redis=redis)
 dp = Dispatcher(storage=storage)
 
+dp.include_router(admin)
 dp.include_router(start)
 dp.include_router(add_task)
 dp.include_router(show_tasks)
