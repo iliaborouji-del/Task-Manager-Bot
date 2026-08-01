@@ -134,14 +134,14 @@ async def show_report(message: Message, state: FSMContext):
             f"✅ انجام‌شده: {len(completed_tasks)}\n"
             f"⏳ در حال انجام: {len(doing_tasks)}\n"
             f"⭕ انجام‌نشده: {len(not_done_tasks)}\n"
-            f"⌛ عقب‌افتاده: {len(overdue_tasks)}\n\n"
-
+            f"⌛ عقب‌افتاده: {len(overdue_tasks)}\n"
+            "\u200F━━━━━━━━━━━━━━━━━━\n"
             f"📈 نرخ تکمیل: \u200E{completion_rate}%\n"
             f"⏰ انجام به‌موقع: \u200E{on_time}%\n"
             f"🔥 فعال‌ترین روز: {active_day_text} ({active_count} وظیفه)\n"
             f"😴 روزهای بدون فعالیت: {idle_days_count}\n"
-            f"⚠️ نزدیک‌ترین ددلاین: \u200E{next_deadline_text}\n\n"
-
+            f"⚠️ نزدیک‌ترین ددلاین: \u200E{next_deadline_text}\n"
+            "\u200F━━━━━━━━━━━━━━━━━━\n"
             "💪 به همین روند ادامه بده!"
         )
         

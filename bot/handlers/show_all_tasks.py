@@ -63,7 +63,7 @@ async def show_all_tasks(call: CallbackQuery):
             )
 
             text = (
-                "\u200F━━━━━━━━━━━━━━━━━━━━\n"
+                "\u200F━━━━━━━━━━━━━━━━━━\n"
                 f"\u200F🆔 شناسه: \u200E{task.id}\n"
                 f"📁 دسته‌بندی: {category_name}\n"
                 f"📌 عنوان: {task.title}\n"
@@ -72,7 +72,7 @@ async def show_all_tasks(call: CallbackQuery):
                 f"⌛ ددلاین: \u200E{deadline_text}\n"
                 f"📂 وضعیت: {task.status}\n"
                 f"📆 اضافه شده: \u200E{created_text}\n"
-                "\u200F━━━━━━━━━━━━━━━━━━━━"
+                "\u200F━━━━━━━━━━━━━━━━━━"
             )
 
             await call.message.answer(

@@ -80,7 +80,7 @@ async def show_tasks(call: CallbackQuery):
             )
 
             text = (
-                "\u200F━━━━━━━━━━━━━━━━━━━━\n"
+                "\u200F━━━━━━━━━━━━━━━━━━\n"
                 f"\u200F🆔 شناسه:  \u200E{task.id}\n"
                 f"📁 دسته‌بندی: {category_name}\n"
                 f"📌 عنوان: {task.title}\n"
@@ -89,7 +89,7 @@ async def show_tasks(call: CallbackQuery):
                 f"⌛ ددلاین: \u200E{deadline_text}\n"
                 f"📂 وضعیت: {task.status}\n"
                 f"📆 اضافه شده: \u200E{created_text}\n"
-                "\u200F━━━━━━━━━━━━━━━━━━━━"
+                "\u200F━━━━━━━━━━━━━━━━━━"
             )
 
             if task.status == "در حال انجام ⏳":
@@ -149,7 +149,7 @@ async def change_status(call: CallbackQuery):
         )
 
         new_text = (
-            "\u200F━━━━━━━━━━━━━━━━━━━━\n"
+            "\u200F━━━━━━━━━━━━━━━━━━\n"
             f"\u200F🆔 شناسه:  \u200E{task.id}\n"
             f"📁 دسته‌بندی: {category_name}\n"
             f"📌 عنوان: {task.title}\n"
@@ -158,7 +158,7 @@ async def change_status(call: CallbackQuery):
             f"⌛ ددلاین: \u200E{deadline_text}\n"
             f"📂 وضعیت: {task.status}\n"
             f"📆 اضافه شده: \u200E{created_text}\n"
-            "\u200F━━━━━━━━━━━━━━━━━━━━"
+            "\u200F━━━━━━━━━━━━━━━━━━"
         )
             
         if new_status == "انجام شده ✅":

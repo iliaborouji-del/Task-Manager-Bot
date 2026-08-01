@@ -3,7 +3,6 @@ from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from bot.filters.admin import AdminFilter
-from bot.keyboards.start import create_main_menu_keyboard
 from bot.keyboards.admin import (
     create_admin_keyboard,
     create_users_keyboard,
@@ -35,18 +34,18 @@ async def build_stats_text(
     last_user,
 ):
     text = (
-        "\u200F━━━━━━━━━━━━━━━━━━━━\n"
+        "\u200F━━━━━━━━━━━━━━━━━━\n"
         "📊 آمار ربات\n"
-        "\u200F━━━━━━━━━━━━━━━━━━━━\n"
+        "\u200F━━━━━━━━━━━━━━━━━━\n"
         "👥 کاربران:\n"
         f"• تعداد کل کاربران: {total_users}\n"
         f"• کاربران فعال ۷ روز اخیر: {active_users}\n"
         f"• کاربران جدید امروز: {new_users}\n"
         f"• کاربران مسدود شده: {blocked_users}\n"
-        "\u200F━━━━━━━━━━━━━━━━━━━━\n"
+        "\u200F━━━━━━━━━━━━━━━━━━\n"
         "📝 وظایف:\n"
         f"• تعداد کل وظایف: {tasks_count}\n"
-        "\u200F━━━━━━━━━━━━━━━━━━━━\n"
+        "\u200F━━━━━━━━━━━━━━━━━━\n"
         "📂 دسته‌بندی‌ها:\n"
         f"• تعداد دسته‌بندی‌ها: {categories_count}\n"
     )
@@ -57,7 +56,7 @@ async def build_stats_text(
         )
 
         text += (
-            "\u200F━━━━━━━━━━━━━━━━━━━━\n"
+            "\u200F━━━━━━━━━━━━━━━━━━\n"
             "🆕 آخرین ثبت‌نام:\n"
             f"👤 نام: {last_user.full_name}\n"
             f"🆔 شناسه: \u200E{last_user.user_id}\n"
@@ -65,23 +64,21 @@ async def build_stats_text(
         )
 
     text += (
-        "\u200F━━━━━━━━━━━━━━━━━━━━"
+        "\u200F━━━━━━━━━━━━━━━━━━"
     )
 
     return text
 
-async def build_users_text(users, total_count: int, limit: int):
+async def build_users_text(users, total_count: int, offset: int):
     text = (
-        "\u200F━━━━━━━━━━━━━━━━━━━━\n"
+        "\u200F━━━━━━━━━━━━━━━━━━\n"
         "👥 مدیریت کاربران\n"
         f"👤 تعداد کل کاربران: {total_count}\n"
-        "\u200F━━━━━━━━━━━━━━━━━━━━\n"
+        "\u200F━━━━━━━━━━━━━━━━━━\n"
     )
 
-    for index, user in enumerate(users[:limit], start=1):
-
+    for index, user in enumerate(users, start=offset + 1):
         created = jalali_string(user.created_at)
-
         username = (
             f"@{user.username}"
             if user.username
@@ -101,15 +98,15 @@ async def build_users_text(users, total_count: int, limit: int):
             f"📱 نام کاربری: {username}\n"
             f"📅 تاریخ عضویت: \u200E{created}\n"
             f"📌 وضعیت: {status}\n"
-            "\u200F━━━━━━━━━━━━━━━━━━━━\n"
+            "\u200F━━━━━━━━━━━━━━━━━━\n"
         )
 
     return text
 
 
 async def show_users(call: CallbackQuery, offset: int = 0):
-    limit = 10
     async with session_scope() as session:
+        limit = 10
         total_count = await get_users_count(session)
         users = await get_users_page(
             session=session,
@@ -117,21 +114,21 @@ async def show_users(call: CallbackQuery, offset: int = 0):
             limit=limit,
         )
 
-    text = await build_users_text(
-        users=users,
-        total_count=total_count,
-        limit=limit,
-    )
-    show_more = (
-        offset + limit < total_count
-    )
-    await call.message.edit_text(
-        text,
-        reply_markup=create_users_keyboard(
-            show_more=show_more,
-            next_offset=offset + limit
+        text = await build_users_text(
+            users=users,
+            total_count=total_count,
+            offset=offset
         )
-    )
+        show_more = (
+            offset + limit < total_count
+        )
+        await call.message.edit_text(
+            text,
+            reply_markup=create_users_keyboard(
+                show_more=show_more,
+                next_offset=offset + limit
+            )
+        )
 
 @router.message(Command("admin"), AdminFilter())
 async def admin_panel(message: Message):
@@ -143,11 +140,7 @@ async def admin_panel(message: Message):
 @router.callback_query(F.data == "admin_users", AdminFilter())
 async def admin_users(call: CallbackQuery):
     await call.answer()
-
-    await show_users(
-        call=call,
-        limit=10,
-    )
+    await show_users(call=call)
 
 @router.callback_query(F.data.startswith("admin_users_more_"), AdminFilter())
 async def admin_users_more(call: CallbackQuery):
@@ -158,7 +151,7 @@ async def admin_users_more(call: CallbackQuery):
     )
 
     await show_users(
-        callback=call,
+        call=call,
         offset=offset,
     )
 

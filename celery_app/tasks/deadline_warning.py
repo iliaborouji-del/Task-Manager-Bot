@@ -59,11 +59,13 @@ def check_deadlines(self):
                 if timedelta(0) < delta <= threshold:
 
                     text = (
-                        "⚠️ یادآوری ددلاین\n\n"
-                        f"🆔 شناسه: {task.id}\n"
+                        "⚠️ یادآوری ددلاین\n"
+                        "\u200F━━━━━━━━━━━━━━━━━━\n"
+                        f"\u200F🆔 شناسه: {task.id}\n"
                         f"📌 عنوان: {task.title}\n"
                         f"⏳ ددلاین: {jalali_string(deadline_dt)}\n\n"
                         "کمتر از یک ساعت تا پایان این وظیفه باقی مانده است!!!"
+                        "\u200F━━━━━━━━━━━━━━━━━━"
                     )
 
                     payload = {
