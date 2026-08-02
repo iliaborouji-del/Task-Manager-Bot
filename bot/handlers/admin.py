@@ -6,6 +6,7 @@ from bot.filters.admin import AdminFilter
 from bot.keyboards.admin import (
     create_admin_keyboard,
     create_users_keyboard,
+    create_user_management_keyboard
 )
 from bot.database.connection import session_scope
 from bot.utils.datetime import jalali_string
@@ -18,7 +19,12 @@ from bot.database.admin import (
     get_new_users_today_count,
     get_blocked_users_count,
     get_last_registered_user,
-    get_all_users_ids
+    get_all_users_ids,
+    get_user_by_id,
+    toggle_admin,
+    toggle_premium,
+    toggle_block,
+    refresh_user
 )
 from bot.states.admin import AdminStates
 
@@ -125,6 +131,7 @@ async def show_users(call: CallbackQuery, offset: int = 0):
         await call.message.edit_text(
             text,
             reply_markup=create_users_keyboard(
+                users=users,
                 show_more=show_more,
                 next_offset=offset + limit
             )
@@ -230,4 +237,122 @@ async def admin_back(call: CallbackQuery):
     await call.message.edit_text(
         text="🛠️ پنل مدیریت",
         reply_markup=create_admin_keyboard()
+    )
+    
+@router.callback_query(F.data.startswith("admin_user:"), AdminFilter())
+async def admin_user_detail(call: CallbackQuery):
+    await call.answer()
+
+    user_id = int(
+        call.data.split(":")[1]
+    )
+
+    async with session_scope() as session:
+
+        user = await get_user_by_id(
+            session=session,
+            user_id=user_id,
+        )
+
+    if user is None:
+        await call.message.edit_text(
+            "کاربر پیدا نشد."
+        )
+        return
+
+    text = (
+        "👤 اطلاعات کاربر\n\n"
+        f"🆔 شناسه: {user.user_id}\n"
+        f"نام: {user.full_name}\n"
+        f"ادمین: {'✅' if user.is_admin else '❌'}\n"
+        f"پرمیوم: {'⭐' if user.is_premium else '❌'}\n"
+        f"مسدود: {'🚫' if user.is_blocked else '✅'}"
+    )
+
+    await call.message.edit_text(
+        text=text,
+        reply_markup=create_user_management_keyboard(
+            user_id=user.user_id,
+            is_admin=user.is_admin,
+            is_premium=user.is_premium,
+            is_blocked=user.is_blocked,
+        )
+    )
+    
+@router.callback_query(F.data.startswith("user_admin:"), AdminFilter())
+async def change_user_admin(call: CallbackQuery):
+    await call.answer()
+
+    user_id = int(
+        call.data.split(":")[1]
+    )
+
+    async with session_scope() as session:
+
+        user = await refresh_user(
+            session=session,
+            user_id=user_id,
+        )
+
+        if user is None:
+            await call.answer(
+                "کاربر پیدا نشد.",
+                show_alert=True
+            )
+            return
+
+        await toggle_admin(
+            session=session,
+            user=user,
+        )
+
+        user = await refresh_user(
+            session=session,
+            user_id=user_id,
+        )
+
+    await call.message.edit_reply_markup(
+        reply_markup=create_user_management_keyboard(
+            user_id=user.user_id,
+            is_admin=user.is_admin,
+            is_premium=user.is_premium,
+            is_blocked=user.is_blocked,
+        )
+    )
+    
+@router.callback_query(F.data.startswith("user_block:"), AdminFilter())
+async def change_user_block(call: CallbackQuery):
+    await call.answer()
+
+    user_id = int(
+        call.data.split(":")[1]
+    )
+
+    async with session_scope() as session:
+
+        user = await refresh_user(
+            session=session,
+            user_id=user_id,
+        )
+
+        if user is None:
+            return
+
+        await toggle_block(
+            session=session,
+            user=user,
+        )
+
+        user = await refresh_user(
+            session=session,
+            user_id=user_id,
+        )
+
+    await call.message.edit_reply_markup(
+        reply_markup=create_user_management_keyboard(
+            user_id=user.user_id,
+            is_admin=user.is_admin,
+            is_premium=user.is_premium,
+            is_blocked=user.is_blocked,
+        )
     )

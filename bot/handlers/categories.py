@@ -26,6 +26,7 @@ from bot.database.categories import (
     category_has_tasks,
     get_other_categories,
 )
+from bot.database.users import is_premium
 
 router = Router()
 
@@ -33,22 +34,47 @@ router = Router()
 async def categories_menu(message: Message, state: FSMContext):
     await state.clear()
 
+    async with session_scope() as session:
+        premium = await is_premium(
+            session=session,
+            user_id=message.from_user.id,
+        )
+
     await message.answer(
         text="یکی از گزینه‌های زیر را انتخاب کنید.",
-        reply_markup=create_categories_menu(),
+        reply_markup=create_categories_menu(
+            is_premium=premium
+        ),
     )
-    
-    await state.set_state(CategoriesStates.wating_for_choose)
-    
 
-
+    await state.set_state(CategoriesStates.waiting_for_choose)
+    
 @router.message(F.text == "➕ اضافه کردن دسته‌بندی")
 async def add_category(message: Message, state: FSMContext):
+
+    async with session_scope() as session:
+        premium = await is_premium(
+            session=session,
+            user_id=message.from_user.id,
+        )
+
+    if not premium:
+        await message.answer(
+            text=(
+                "⭐ ساخت دسته‌بندی جدید فقط برای کاربران پرمیوم فعال است.\n\n"
+                "دسته‌بندی پیشفرض common برای شما فعال است."
+            )
+        )
+        return
+
     await message.answer(
         text="نام دسته‌بندی جدید را وارد کنید:",
         reply_markup=create_category_cancel_keyboard()
     )
-    await state.set_state(CategoriesStates.waiting_for_category_name)
+
+    await state.set_state(
+        CategoriesStates.waiting_for_category_name
+    )
     
 @router.message(
     CategoriesStates.waiting_for_category_name,
@@ -57,11 +83,22 @@ async def add_category(message: Message, state: FSMContext):
 async def cancel_categories(message: Message, state: FSMContext):
     await state.clear()
 
+    async with session_scope() as session:
+        premium = await is_premium(
+            session=session,
+            user_id=message.from_user.id,
+        )
+
     await message.answer(
         text="لغو شد.",
-        reply_markup=create_categories_menu(),
+        reply_markup=create_categories_menu(
+            is_premium=premium
+        ),
     )
-    await state.set_state(CategoriesStates.wating_for_choose)
+
+    await state.set_state(
+        CategoriesStates.waiting_for_choose
+    )
 
 @router.message(CategoriesStates.waiting_for_category_name)
 async def save_category(message: Message, state: FSMContext):
@@ -91,9 +128,9 @@ async def save_category(message: Message, state: FSMContext):
 
     await message.answer(
         text="✅ دسته‌بندی با موفقیت ایجاد شد.",
-        reply_markup=create_categories_menu(),
+        reply_markup=create_categories_menu(is_premium=True),
     )
-    await state.set_state(CategoriesStates.wating_for_choose)
+    await state.set_state(CategoriesStates.waiting_for_choose)
 
 @router.message(F.text == "✏️ اصلاح یا حذف دسته‌بندی")
 async def show_categories(message: Message):
@@ -174,18 +211,25 @@ async def save_new_category_name(message: Message, state: FSMContext):
             )
             return
 
-        await rename_category(
+        success = await rename_category(
             session=session,
             category_id=category_id,
             user_id=message.from_user.id,
             new_name=new_name,
         )
 
+        if not success:
+            await message.answer(
+                text="این دسته‌بندی قابل تغییر نیست."
+            )
+            await state.clear()
+            return
+
     await message.answer(
         text="✅ نام دسته‌بندی با موفقیت تغییر کرد.",
-        reply_markup=create_categories_menu(),
+        reply_markup=create_categories_menu(is_premium=True),
     )
-    await state.set_state(CategoriesStates.wating_for_choose)
+    await state.set_state(CategoriesStates.waiting_for_choose)
     
 @router.message(CategoriesStates.selected_category, F.text == "بازگشت ↪️")
 async def back_to_categories(message: Message, state: FSMContext):
@@ -211,14 +255,19 @@ async def back_to_categories(message: Message, state: FSMContext):
     
 @router.callback_query(F.data == "categories_back")
 async def categories_back(call: CallbackQuery, state: FSMContext):
-    await call.message.delete()
+    await state.clear()
+    async with session_scope() as session:
+        premium = await is_premium(
+            session=session,
+            user_id=call.from_user.id,
+        )
 
     await call.message.answer(
         text="مدیریت دسته ‌بندی‌ ها",
-        reply_markup=create_categories_menu(),
+        reply_markup=create_categories_menu(
+            is_premium=premium
+        ),
     )
-    await state.set_state(CategoriesStates.wating_for_choose)
-    await call.answer()
 
 @router.message(CategoriesStates.selected_category, F.text == "🗑️ حذف")
 async def delete_category_start(message: Message, state: FSMContext):
@@ -234,14 +283,22 @@ async def delete_category_start(message: Message, state: FSMContext):
         )
 
         if not has_tasks:
-            await delete_category(
+            deleted = await delete_category(
                 session=session,
                 category_id=category_id,
                 user_id=message.from_user.id,
             )
+
+            if not deleted:
+                await message.answer(
+                    text="این دسته‌بندی قابل حذف نیست."
+                )
+                return
+
             await message.answer(
                 "✅ دسته‌بندی حذف شد."
             )
+
             return
 
         categories = await get_other_categories(
@@ -297,8 +354,7 @@ async def move_tasks(call: CallbackQuery, state: FSMContext):
 
     await call.answer()
        
-@router.message(CategoriesStates.wating_for_choose, F.text == "بازگشت ↪️")
+@router.message(CategoriesStates.waiting_for_choose, F.text == "بازگشت ↪️")
 async def return_to_main_menu(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(text="منوی اصلی", reply_markup=create_main_menu_keyboard())
-

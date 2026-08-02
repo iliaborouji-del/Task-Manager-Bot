@@ -2,7 +2,7 @@ from aiogram.fsm.state import State, StatesGroup
 
 
 class CategoriesStates(StatesGroup):
-    wating_for_choose = State()
+    waiting_for_choose = State()
     
     waiting_for_category_name = State()
 

@@ -7,10 +7,10 @@ from bot.utils.datetime import (
     iran_to_naive,
     is_past,
 )
-
+from bot.database.categories import get_user_categories_for_task
+from bot.database.users import is_premium
 from bot.keyboards.start import create_main_menu_keyboard
 from bot.states.add_task import AddTaskStates, Deadline
-from bot.database.categories import get_all_categories
 from bot.keyboards.categories import create_categories_keyboard
 from bot.keyboards.add_task import (
     create_priority_keyboard,
@@ -52,8 +52,22 @@ async def get_title(message: Message, state: FSMContext):
 @router.message(AddTaskStates.description)
 async def get_description(message: Message, state: FSMContext):
     async with session_scope() as session:
-        await state.update_data(description=message.text)
-        categories = await get_all_categories(session, message.from_user.id)
+
+        await state.update_data(
+            description=message.text
+        )
+
+        premium = await is_premium(
+            session=session,
+            user_id=message.from_user.id,
+        )
+
+        categories = await get_user_categories_for_task(
+            session=session,
+            user_id=message.from_user.id,
+            is_premium=premium,
+        )
+
 
     if not categories:
         await message.answer(

@@ -15,6 +15,9 @@ from bot.handlers.show_all_tasks import router as all_tasks
 from bot.handlers.categories import router as category
 from bot.database.connection import create_db
 from bot.handlers.admin import router as admin
+from bot.middlewares.blocked import BlockedUserMiddleware
+from bot.database.users import create_owner_admin
+from bot.database.connection import session_scope
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +38,9 @@ redis = Redis(
 storage = RedisStorage(redis=redis)
 dp = Dispatcher(storage=storage)
 
+dp.message.middleware(BlockedUserMiddleware())
+dp.callback_query.middleware(BlockedUserMiddleware())
+
 dp.include_router(admin)
 dp.include_router(start)
 dp.include_router(add_task)
@@ -46,6 +52,12 @@ dp.include_router(category)
 async def main():
     await create_db()
     logger.info("Database initialized successfully.")
+    async with session_scope() as session:
+        await create_owner_admin(
+            session,
+            Config.OWNER_ID
+        )
+    logger.info("Owner created successfully.")
     try:
         await dp.start_polling(bot)
         logger.info("Bot started in %s mode.", Config.SOURCE)

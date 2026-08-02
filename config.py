@@ -13,7 +13,7 @@ else:
 class Config:
     SOURCE = source
     BOT_TOKEN = os.getenv("TOKEN")
-    ADMIN_ID = int(os.getenv("ADMIN_ID"))
+    OWNER_ID = os.getenv("OWNER_ID")
     API_BASE_BALE = os.getenv("API_BASE_BALE")
     CHAT_BASE = os.getenv("CHAT_BASE")
 

@@ -3,10 +3,11 @@ from bot.database.models import Categories, Tasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------- Create Category ----------
-async def create_category(session, user_id: int, name: str):
+async def create_category(session, user_id: int, name: str, is_default: bool = False):
     category = Categories(
         user_id=user_id,
         name=name,
+        is_default=is_default
     )
 
     session.add(category)
@@ -26,6 +27,24 @@ async def get_all_categories(session, user_id: int):
 
     return result.scalars().all()
 
+# ---------- Get User Categories For Task ----------
+async def get_user_categories_for_task(session, user_id: int, is_premium: bool):
+    if is_premium:
+        return await get_all_categories(
+            session=session,
+            user_id=user_id,
+        )
+
+    result = await session.execute(
+        select(Categories)
+        .where(
+            Categories.user_id == user_id,
+            Categories.name == "common",
+        )
+    )
+
+    return result.scalars().all()
+
 
 # ---------- Get Category ----------
 async def get_category(session, category_id: int, user_id: int):
@@ -41,17 +60,23 @@ async def get_category(session, category_id: int, user_id: int):
 
 # ---------- Rename Category ----------
 async def rename_category(session, category_id: int, user_id: int, new_name: str):
-    await session.execute(
-        update(Categories)
-        .where(
-            Categories.id == category_id,
-            Categories.user_id == user_id,
-        )
-        .values(name=new_name)
+    category = await get_category(
+        session=session,
+        category_id=category_id,
+        user_id=user_id,
     )
+
+    if category is None:
+        return False
+
+    if category.name == "common":
+        return False
+
+    category.name = new_name
 
     await session.commit()
 
+    return True
 
 # ---------- Move Tasks ----------
 async def move_tasks_to_category(session, old_category_id: int, new_category_id: int, user_id: int):
@@ -69,15 +94,23 @@ async def move_tasks_to_category(session, old_category_id: int, new_category_id:
 
 # ---------- Delete Category ----------
 async def delete_category(session, category_id: int, user_id: int):
-    await session.execute(
-        delete(Categories).where(
-            Categories.id == category_id,
-            Categories.user_id == user_id,
-        )
+    category = await get_category(
+        session,
+        category_id,
+        user_id
     )
+
+    if category is None:
+        return False
+    
+    if category and category.is_default:
+        return False
+
+    await session.delete(category)
 
     await session.commit()
 
+    return True
 
 # ---------- Count Tasks ----------
 async def count_category_tasks(session, category_id: int, user_id: int):
@@ -141,3 +174,19 @@ async def get_other_categories(session: AsyncSession, user_id: int, category_id:
     )
 
     return list(result.all())
+
+async def create_default_category(session, user_id: int):
+
+    category = Categories(
+        user_id=user_id,
+        name="common",
+        is_default=True,
+    )
+
+    session.add(category)
+
+    await session.commit()
+
+    await session.refresh(category)
+
+    return category

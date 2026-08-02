@@ -16,6 +16,7 @@ router = Router()
 
 @router.message(filters.CommandStart())
 async def start(message: Message, state: FSMContext):
+    print(message.from_user.id)
     async with session_scope() as session:
         await register_user(
             session=session,

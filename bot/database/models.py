@@ -43,6 +43,7 @@ class Categories(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer)
     name: Mapped[str] = mapped_column(String)
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
     
     tasks = relationship(
         "Tasks",
@@ -58,5 +59,7 @@ class Users(Base):
     full_name: Mapped[str] = mapped_column(String, nullable=False)
     username: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     is_blocked: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_premium: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: iran_to_naive(now_iran()))
     last_activity: Mapped[datetime] = mapped_column(DateTime, default=lambda: iran_to_naive(now_iran()))

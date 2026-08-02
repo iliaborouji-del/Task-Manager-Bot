@@ -94,3 +94,32 @@ async def get_all_users_ids(session) -> list[int]:
     )
 
     return result.scalars().all()
+
+async def toggle_admin(session, user: Users):
+    user.is_admin = not user.is_admin
+
+    await session.commit()
+
+
+
+async def toggle_premium(session, user: Users):
+    user.is_premium = not user.is_premium
+
+    await session.commit()
+
+
+
+async def toggle_block(session, user: Users):
+    user.is_blocked = not user.is_blocked
+
+    await session.commit()
+    
+async def refresh_user(session, user_id: int):
+    result = await session.execute(
+        select(Users)
+        .where(
+            Users.user_id == user_id
+        )
+    )
+
+    return result.scalar_one_or_none()

@@ -5,13 +5,25 @@ from aiogram.types import (
     InlineKeyboardButton,
 )
 
-def create_categories_menu() -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        keyboard=[
+def create_categories_menu(is_premium: bool = False) -> ReplyKeyboardMarkup:
+    keyboard = []
+
+    if is_premium:
+        keyboard.append(
             [KeyboardButton(text="➕ اضافه کردن دسته‌بندی"),
-            KeyboardButton(text="✏️ اصلاح یا حذف دسته‌بندی")],
-            [KeyboardButton(text="بازگشت ↪️")]
-        ],
+            KeyboardButton(text="✏️ اصلاح یا حذف دسته‌بندی")]
+        )
+    else:
+        keyboard.append(
+            [KeyboardButton(text="✏️ اصلاح یا حذف دسته‌بندی")]
+        )
+
+    keyboard.append(
+        [KeyboardButton(text="بازگشت ↪️")]
+    )
+
+    return ReplyKeyboardMarkup(
+        keyboard=keyboard,
         resize_keyboard=True,
     )
 
