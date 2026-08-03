@@ -16,15 +16,10 @@ async def create_user(session, user_id: int, full_name: str, username: str | Non
         full_name=full_name,
         username=username
     )
-
+    
     session.add(user)
     await session.commit()
     await session.refresh(user)
-
-    await create_default_category(
-        session=session,
-        user_id=user_id,
-    )
 
     return user
 
@@ -49,6 +44,11 @@ async def register_user(session, user_id: int, full_name: str, username: str | N
     ):
         user.full_name = full_name
         user.username = username
+    
+    await create_default_category(
+            session=session,
+            user_id=user_id,
+        )
         
     user.last_activity = iran_to_naive(now_iran())
     

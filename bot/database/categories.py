@@ -175,18 +175,28 @@ async def get_other_categories(session: AsyncSession, user_id: int, category_id:
 
     return list(result.all())
 
-async def create_default_category(session, user_id: int):
+async def create_default_category(session, user_id):
+
+    result = await session.execute(
+        select(Categories).where(
+            Categories.user_id == user_id,
+            Categories.name == "common"
+        )
+    )
+
+    category = result.scalar_one_or_none()
+
+    if category:
+        return category
 
     category = Categories(
         user_id=user_id,
         name="common",
-        is_default=True,
+        is_default=True
     )
 
     session.add(category)
-
     await session.commit()
-
     await session.refresh(category)
 
     return category
