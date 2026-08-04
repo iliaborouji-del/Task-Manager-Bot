@@ -1,13 +1,13 @@
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
-from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from bot.filters.admin import AdminFilter
 from bot.keyboards.admin import (
     create_admin_keyboard,
     create_users_keyboard,
-    create_user_management_keyboard
+    create_user_management_keyboard,
 )
+from bot.keyboards.start import create_main_menu_keyboard
 from bot.database.connection import session_scope
 from bot.utils.datetime import jalali_string
 from bot.database.admin import (
@@ -24,9 +24,10 @@ from bot.database.admin import (
     toggle_admin,
     toggle_premium,
     toggle_block,
-    refresh_user
+    refresh_user,
 )
 from bot.states.admin import AdminStates
+from config import Config
 
 router = Router()
 
@@ -83,8 +84,14 @@ async def build_users_text(users, total_count: int, offset: int):
         "\u200F━━━━━━━━━━━━━━━━━━\n"
     )
 
-    for index, user in enumerate(users, start=offset + 1):
-        created = jalali_string(user.created_at)
+    for index, user in enumerate(
+        users,
+        start=offset + 1,
+    ):
+        created = jalali_string(
+            user.created_at
+        )
+
         username = (
             f"@{user.username}"
             if user.username
@@ -109,11 +116,14 @@ async def build_users_text(users, total_count: int, offset: int):
 
     return text
 
-
 async def show_users(call: CallbackQuery, offset: int = 0):
     async with session_scope() as session:
         limit = 10
-        total_count = await get_users_count(session)
+
+        total_count = await get_users_count(
+            session
+        )
+
         users = await get_users_page(
             session=session,
             offset=offset,
@@ -123,31 +133,79 @@ async def show_users(call: CallbackQuery, offset: int = 0):
         text = await build_users_text(
             users=users,
             total_count=total_count,
-            offset=offset
+            offset=offset,
         )
+
         show_more = (
             offset + limit < total_count
         )
+
         await call.message.edit_text(
             text,
             reply_markup=create_users_keyboard(
                 users=users,
                 show_more=show_more,
-                next_offset=offset + limit
-            )
+                next_offset=offset + limit,
+            ),
         )
 
-@router.message(Command("admin"), AdminFilter())
+# =========================================================
+# Admin Main Panel
+# =========================================================
+
+@router.message(F.text == "🛠️ پنل مدیریت", AdminFilter())
 async def admin_panel(message: Message):
     await message.answer(
         "🛠️ پنل مدیریت",
-        reply_markup=create_admin_keyboard()
+        reply_markup=create_admin_keyboard(),
     )
 
+# =========================================================
+# Users Management
+# =========================================================
+
+@router.message(F.text == "👥 مدیریت کاربران", AdminFilter())
+async def admin_users_message(message: Message):
+    async with session_scope() as session:
+        limit = 10
+
+        total_count = await get_users_count(
+            session
+        )
+
+        users = await get_users_page(
+            session=session,
+            offset=0,
+            limit=limit,
+        )
+
+        text = await build_users_text(
+            users=users,
+            total_count=total_count,
+            offset=0,
+        )
+
+        show_more = (
+            limit < total_count
+        )
+
+    await message.answer(
+        text=text,
+        reply_markup=create_users_keyboard(
+            users=users,
+            show_more=show_more,
+            next_offset=limit,
+        ),
+    )
+    
 @router.callback_query(F.data == "admin_users", AdminFilter())
 async def admin_users(call: CallbackQuery):
     await call.answer()
-    await show_users(call=call)
+
+    await show_users(
+        call=call,
+        offset=0,
+    )
 
 @router.callback_query(F.data.startswith("admin_users_more_"), AdminFilter())
 async def admin_users_more(call: CallbackQuery):
@@ -162,17 +220,40 @@ async def admin_users_more(call: CallbackQuery):
         offset=offset,
     )
 
-@router.callback_query(F.data == "admin_stats", AdminFilter())
-async def admin_stats(call: CallbackQuery):
-    await call.answer()
+# =========================================================
+# Statistics
+# =========================================================
+
+@router.message(F.text == "📊 آمار ربات", AdminFilter())
+async def admin_stats_message(message: Message):
     async with session_scope() as session:
-        total_users = await get_users_count(session)
-        active_users = await get_active_users_count(session)
-        new_users = await get_new_users_today_count(session)
-        blocked_users = await get_blocked_users_count(session)
-        tasks_count = await get_tasks_count(session)
-        categories_count = await get_categories_count(session)
-        last_user = await get_last_registered_user(session)
+        total_users = await get_users_count(
+            session
+        )
+
+        active_users = await get_active_users_count(
+            session
+        )
+
+        new_users = await get_new_users_today_count(
+            session
+        )
+
+        blocked_users = await get_blocked_users_count(
+            session
+        )
+
+        tasks_count = await get_tasks_count(
+            session
+        )
+
+        categories_count = await get_categories_count(
+            session
+        )
+
+        last_user = await get_last_registered_user(
+            session
+        )
 
     text = await build_stats_text(
         total_users=total_users,
@@ -184,26 +265,30 @@ async def admin_stats(call: CallbackQuery):
         last_user=last_user,
     )
 
-    await call.message.edit_text(
-        text,
-        reply_markup=create_admin_keyboard()
+    await message.answer(
+        text=text,
+        reply_markup=create_admin_keyboard(),
     )
 
-@router.callback_query(F.data == "admin_broadcast", AdminFilter())
-async def admin_broadcast(call: CallbackQuery, state: FSMContext):
-    await call.answer()
+# =========================================================
+# Broadcast
+# =========================================================
 
+@router.message(F.text == "📢 ارسال همگانی", AdminFilter())
+async def admin_broadcast_message(message: Message, state: FSMContext):
     await state.set_state(
         AdminStates.waiting_for_broadcast
     )
 
-    await call.message.edit_text(
-        text="📢 ارسال همگانی\n\n"
+    await message.answer(
+        text=(
+            "📢 ارسال همگانی\n\n"
             "لطفاً پیام مورد نظر برای ارسال را ارسال کنید."
+        )
     )
-    
+
 @router.message(AdminStates.waiting_for_broadcast, AdminFilter())
-async def send_broadcast(message: Message, state: FSMContext,):
+async def send_broadcast(message: Message, state: FSMContext):
     async with session_scope() as session:
         users_ids = await get_all_users_ids(
             session
@@ -211,6 +296,7 @@ async def send_broadcast(message: Message, state: FSMContext,):
 
     success = 0
     failed = 0
+
     for user_id in users_ids:
         try:
             await message.bot.copy_message(
@@ -218,16 +304,36 @@ async def send_broadcast(message: Message, state: FSMContext,):
                 from_chat_id=message.chat.id,
                 message_id=message.message_id,
             )
+
             success += 1
+
         except Exception:
             failed += 1
 
     await state.clear()
+
     await message.answer(
-        text="📢 گزارش ارسال همگانی\n\n"
+        text=(
+            "📢 گزارش ارسال همگانی\n\n"
             f"✅ موفق: {success}\n"
-            f"❌ ناموفق: {failed}",
-        reply_markup=create_admin_keyboard()
+            f"❌ ناموفق: {failed}"
+        ),
+        reply_markup=create_admin_keyboard(),
+    )
+
+# =========================================================
+# Back To Main Menu
+# =========================================================
+
+@router.message(F.text == "🔙 بازگشت", AdminFilter())
+async def admin_back_message(message: Message, state: FSMContext):
+    await state.clear()
+
+    await message.answer(
+        text="منوی اصلی",
+        reply_markup=create_main_menu_keyboard(
+            is_admin=True
+        ),
     )
 
 @router.callback_query(F.data == "admin_back", AdminFilter())
@@ -236,9 +342,18 @@ async def admin_back(call: CallbackQuery):
 
     await call.message.edit_text(
         text="🛠️ پنل مدیریت",
-        reply_markup=create_admin_keyboard()
+        reply_markup=None,
     )
-    
+
+    await call.message.answer(
+        text="🛠️ پنل مدیریت",
+        reply_markup=create_admin_keyboard(),
+    )
+
+# =========================================================
+# User Detail
+# =========================================================
+
 @router.callback_query(F.data.startswith("admin_user:"), AdminFilter())
 async def admin_user_detail(call: CallbackQuery):
     await call.answer()
@@ -248,7 +363,6 @@ async def admin_user_detail(call: CallbackQuery):
     )
 
     async with session_scope() as session:
-
         user = await get_user_by_id(
             session=session,
             user_id=user_id,
@@ -276,19 +390,34 @@ async def admin_user_detail(call: CallbackQuery):
             is_admin=user.is_admin,
             is_premium=user.is_premium,
             is_blocked=user.is_blocked,
-        )
+        ),
     )
-    
+
+# =========================================================
+# Change Admin
+# =========================================================
+
 @router.callback_query(F.data.startswith("user_admin:"), AdminFilter())
 async def change_user_admin(call: CallbackQuery):
-    await call.answer()
-
     user_id = int(
         call.data.split(":")[1]
     )
+    
+    if user_id == call.from_user.id:
+        await call.answer(
+            "نمی‌توانید دسترسی مدیریتی خودتان را تغییر دهید.",
+            show_alert=True,
+        )
+        return
+    
+    if user_id == Config.OWNER_ID:
+        await call.answer(
+            "دسترسی مدیریتی Owner قابل تغییر نیست.",
+            show_alert=True,
+        )
+        return
 
     async with session_scope() as session:
-
         user = await refresh_user(
             session=session,
             user_id=user_id,
@@ -297,7 +426,7 @@ async def change_user_admin(call: CallbackQuery):
         if user is None:
             await call.answer(
                 "کاربر پیدا نشد.",
-                show_alert=True
+                show_alert=True,
             )
             return
 
@@ -319,17 +448,76 @@ async def change_user_admin(call: CallbackQuery):
             is_blocked=user.is_blocked,
         )
     )
-    
-@router.callback_query(F.data.startswith("user_block:"), AdminFilter())
-async def change_user_block(call: CallbackQuery):
-    await call.answer()
+    await call.answer("دسترسی مدیریتی تغییر کرد.")
 
+# =========================================================
+# Change Premium
+# =========================================================
+
+@router.callback_query(F.data.startswith("user_premium:"), AdminFilter())
+async def change_user_premium(call: CallbackQuery):
     user_id = int(
         call.data.split(":")[1]
     )
 
     async with session_scope() as session:
+        user = await refresh_user(
+            session=session,
+            user_id=user_id,
+        )
 
+        if user is None:
+            await call.answer(
+                "کاربر پیدا نشد.",
+                show_alert=True,
+            )
+            return
+
+        await toggle_premium(
+            session=session,
+            user=user,
+        )
+
+        user = await refresh_user(
+            session=session,
+            user_id=user_id,
+        )
+
+    await call.message.edit_reply_markup(
+        reply_markup=create_user_management_keyboard(
+            user_id=user.user_id,
+            is_admin=user.is_admin,
+            is_premium=user.is_premium,
+            is_blocked=user.is_blocked,
+        )
+    )
+    await call.answer("وضعیت پرمیوم تغییر کرد.")
+
+# =========================================================
+# Change Block Status
+# =========================================================
+
+@router.callback_query(F.data.startswith("user_block:"), AdminFilter())
+async def change_user_block(call: CallbackQuery):
+    user_id = int(
+        call.data.split(":")[1]
+    )
+    
+    if user_id == call.from_user.id:
+        await call.answer(
+            "نمی‌توانید خودتان را مسدود کنید.",
+            show_alert=True,
+        )
+        return
+    
+    if user_id == Config.OWNER_ID:
+        await call.answer(
+            "Owner قابل مسدود شدن نیست.",
+            show_alert=True,
+        )
+        return
+
+    async with session_scope() as session:
         user = await refresh_user(
             session=session,
             user_id=user_id,
@@ -356,3 +544,4 @@ async def change_user_block(call: CallbackQuery):
             is_blocked=user.is_blocked,
         )
     )
+    await call.answer("وضعیت مسدودی تغییر کرد.")

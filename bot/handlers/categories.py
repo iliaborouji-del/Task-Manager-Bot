@@ -1,6 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
+from aiogram.filters import StateFilter
 from bot.database.connection import session_scope
 from bot.keyboards.start import create_main_menu_keyboard
 from bot.database.categories import (
@@ -125,10 +126,15 @@ async def save_category(message: Message, state: FSMContext):
             user_id=message.from_user.id,
             name=name,
         )
+        
+        premium = await is_premium(
+            session=session,
+            user_id=message.from_user.id,
+        )
 
     await message.answer(
         text="✅ دسته‌بندی با موفقیت ایجاد شد.",
-        reply_markup=create_categories_menu(is_premium=True),
+        reply_markup=create_categories_menu(is_premium=premium),
     )
     await state.set_state(CategoriesStates.waiting_for_choose)
 
@@ -149,7 +155,7 @@ async def show_categories(message: Message):
         reply_markup=create_categories_keyboard(categories)
     )
 
-@router.callback_query(F.data.startswith("category_select:"))
+@router.callback_query(StateFilter(CategoriesStates.waiting_for_choose), F.data.startswith("category_select:"))
 async def select_category(call: CallbackQuery, state: FSMContext):
     category_id = int(call.data.split(":")[1])
 
@@ -192,6 +198,11 @@ async def save_new_category_name(message: Message, state: FSMContext):
             user_id=message.from_user.id,
             name=new_name,
         )
+        
+        premium = await is_premium(
+            session=session,
+            user_id=message.from_user.id,
+        )
 
         if exists:
             await message.answer(text="دسته‌بندی دیگری با این نام وجود دارد.")
@@ -207,7 +218,7 @@ async def save_new_category_name(message: Message, state: FSMContext):
             await state.clear()
             await message.answer(
                 text="دسته‌بندی پیدا نشد.",
-                reply_markup=create_categories_menu(),
+                reply_markup=create_categories_menu(is_premium=premium),
             )
             return
 
@@ -227,7 +238,7 @@ async def save_new_category_name(message: Message, state: FSMContext):
 
     await message.answer(
         text="✅ نام دسته‌بندی با موفقیت تغییر کرد.",
-        reply_markup=create_categories_menu(is_premium=True),
+        reply_markup=create_categories_menu(is_premium=premium),
     )
     await state.set_state(CategoriesStates.waiting_for_choose)
     
@@ -264,9 +275,7 @@ async def categories_back(call: CallbackQuery, state: FSMContext):
 
     await call.message.answer(
         text="مدیریت دسته ‌بندی‌ ها",
-        reply_markup=create_categories_menu(
-            is_premium=premium
-        ),
+        reply_markup=create_categories_menu(is_premium=premium)
     )
 
 @router.message(CategoriesStates.selected_category, F.text == "🗑️ حذف")
@@ -281,6 +290,11 @@ async def delete_category_start(message: Message, state: FSMContext):
             category_id=category_id,
             user_id=message.from_user.id,
         )
+        
+        premium = await is_premium(
+                session=session,
+                user_id=message.from_user.id,
+            )
 
         if not has_tasks:
             deleted = await delete_category(
@@ -295,9 +309,12 @@ async def delete_category_start(message: Message, state: FSMContext):
                 )
                 return
 
+            await state.clear()
+
             await message.answer(
-                "✅ دسته‌بندی حذف شد."
-            )
+                "✅ دسته‌بندی حذف شد.",
+                reply_markup=create_categories_menu(is_premium=premium)
+                )
 
             return
 
@@ -350,7 +367,22 @@ async def move_tasks(call: CallbackQuery, state: FSMContext):
 
     await state.clear()
 
-    await call.message.edit_text(text="✅ تمام وظایف منتقل شدند و دسته‌بندی حذف شد.", reply_markup=create_edit_delete_reply_keyboard())
+    await call.message.edit_text(
+        text="✅ تمام وظایف منتقل شدند و دسته‌بندی حذف شد."
+    )
+
+    async with session_scope() as session:
+        premium = await is_premium(
+            session=session,
+            user_id=call.from_user.id,
+        )
+
+    await call.message.answer(
+        text="مدیریت دسته‌بندی‌ها",
+        reply_markup=create_categories_menu(
+            is_premium=premium
+        ),
+    )
 
     await call.answer()
        

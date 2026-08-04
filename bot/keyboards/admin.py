@@ -1,17 +1,24 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import (
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+)
+
 
 def create_admin_keyboard():
-    keyboard = [
-        [InlineKeyboardButton(text="👥 مدیریت کاربران", callback_data="admin_users")],
-        [InlineKeyboardButton(text="📊 آمار ربات", callback_data="admin_stats")],
-        [InlineKeyboardButton(text="📢 ارسال همگانی", callback_data="admin_broadcast")],
-        [InlineKeyboardButton(text="🔙 بازگشت", callback_data="admin_back")]
-    ]
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="👥 مدیریت کاربران")],
+            [KeyboardButton(text="📊 آمار ربات")],
+            [KeyboardButton(text="📢 ارسال همگانی")],
+            [KeyboardButton(text="🔙 بازگشت")],
+        ],
+        resize_keyboard=True,
+    )
 
-    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 def create_users_keyboard(users, show_more: bool = False, next_offset: int = 0):
-
     keyboard = []
 
     for user in users:
@@ -29,7 +36,7 @@ def create_users_keyboard(users, show_more: bool = False, next_offset: int = 0):
             [
                 InlineKeyboardButton(
                     text="⬇️ نمایش بیشتر",
-                    callback_data=f"admin_users_more_{next_offset}"
+                    callback_data=f"admin_users_more_{next_offset}",
                 )
             ]
         )
@@ -38,7 +45,7 @@ def create_users_keyboard(users, show_more: bool = False, next_offset: int = 0):
         [
             InlineKeyboardButton(
                 text="🔙 بازگشت",
-                callback_data="admin_back"
+                callback_data="admin_back",
             )
         ]
     )
@@ -46,7 +53,7 @@ def create_users_keyboard(users, show_more: bool = False, next_offset: int = 0):
     return InlineKeyboardMarkup(
         inline_keyboard=keyboard
     )
-    
+
 def create_user_management_keyboard(user_id: int, is_admin: bool, is_premium: bool, is_blocked: bool):
     keyboard = [
         [
@@ -84,7 +91,7 @@ def create_user_management_keyboard(user_id: int, is_admin: bool, is_premium: bo
                 text="🔙 بازگشت",
                 callback_data="admin_users",
             )
-        ]
+        ],
     ]
 
     return InlineKeyboardMarkup(

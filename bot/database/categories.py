@@ -16,7 +16,6 @@ async def create_category(session, user_id: int, name: str, is_default: bool = F
 
     return category
 
-
 # ---------- Get All Categories ----------
 async def get_all_categories(session, user_id: int):
     result = await session.execute(
@@ -39,12 +38,11 @@ async def get_user_categories_for_task(session, user_id: int, is_premium: bool):
         select(Categories)
         .where(
             Categories.user_id == user_id,
-            Categories.name == "common",
+            Categories.is_default.is_(True),
         )
     )
 
     return result.scalars().all()
-
 
 # ---------- Get Category ----------
 async def get_category(session, category_id: int, user_id: int):
@@ -57,7 +55,6 @@ async def get_category(session, category_id: int, user_id: int):
 
     return result.scalar_one_or_none()
 
-
 # ---------- Rename Category ----------
 async def rename_category(session, category_id: int, user_id: int, new_name: str):
     category = await get_category(
@@ -67,9 +64,6 @@ async def rename_category(session, category_id: int, user_id: int, new_name: str
     )
 
     if category is None:
-        return False
-
-    if category.name == "common":
         return False
 
     category.name = new_name
@@ -90,7 +84,6 @@ async def move_tasks_to_category(session, old_category_id: int, new_category_id:
     )
 
     await session.commit()
-
 
 # ---------- Delete Category ----------
 async def delete_category(session, category_id: int, user_id: int):
@@ -180,7 +173,7 @@ async def create_default_category(session, user_id):
     result = await session.execute(
         select(Categories).where(
             Categories.user_id == user_id,
-            Categories.name == "common"
+            Categories.is_default.is_(True),
         )
     )
 

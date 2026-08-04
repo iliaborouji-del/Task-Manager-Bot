@@ -18,7 +18,7 @@ router = Router()
 async def start(message: Message, state: FSMContext):
     print(message.from_user.id)
     async with session_scope() as session:
-        await register_user(
+        user = await register_user(
             session=session,
             user_id=message.from_user.id,
             full_name=message.from_user.full_name,
@@ -64,5 +64,5 @@ async def start(message: Message, state: FSMContext):
             await message.answer(text=text)
             return
 
-    await message.answer(text=start_text, reply_markup=create_main_menu_keyboard())
+    await message.answer(text=start_text, reply_markup=create_main_menu_keyboard(is_admin=user.is_admin))
     await state.set_state(BotStates.waiting_for_main_menu_button)
