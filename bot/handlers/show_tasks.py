@@ -7,6 +7,7 @@ from bot.database.connection import session_scope
 from bot.database.categories import get_all_categories
 from bot.keyboards.categories import create_show_tasks_categories_keyboard
 from bot.keyboards.start import create_main_menu_keyboard
+from bot.database.users import is_admin
 from bot.keyboards.show_tasks import (
     create_change_status_keyboard,
     create_delete_keyboard
@@ -240,10 +241,12 @@ async def send_qr_code(call: CallbackQuery):
 @router.callback_query(F.data == "show_tasks_back")
 async def show_tasks_back(call: CallbackQuery):
     await call.message.delete()
+    async with session_scope() as session:
+        await call.message.answer(
+            text="منوی اصلی",
+            reply_markup=create_main_menu_keyboard(
+                    is_admin=await is_admin(session, call.message.from_user.id)
+                ),
+        )
 
-    await call.message.answer(
-        text="منوی اصلی",
-        reply_markup=create_main_menu_keyboard(),
-    )
-
-    await call.answer()
+        await call.answer()

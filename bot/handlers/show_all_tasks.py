@@ -8,6 +8,8 @@ from bot.services.qrcode import get_or_create_qr
 from bot.utils.datetime import jalali_string
 from bot.keyboards.categories import create_show_all_tasks_categories_keyboard
 from bot.database.categories import get_all_categories
+from bot.keyboards.start import create_main_menu_keyboard
+from bot.database.users import is_admin
 from config import Config
 import aiohttp
 
@@ -123,16 +125,16 @@ async def send_qr_code(call: CallbackQuery):
         await send_photo_to_bale(call.from_user.id, img_bytes, f"بارکد وظیفه {task_id}")
         
     await call.answer()
-    
-from bot.keyboards.start import create_main_menu_keyboard
 
 @router.callback_query(F.data == "show_all_tasks_back")
 async def show_all_tasks_back(call: CallbackQuery):
     await call.message.delete()
+    async with session_scope() as session:
+        await call.message.answer(
+            text="منوی اصلی",
+            reply_markup=create_main_menu_keyboard(
+                    is_admin=await is_admin(session, call.message.from_user.id)
+                ),
+        )
 
-    await call.message.answer(
-        text="منوی اصلی",
-        reply_markup=create_main_menu_keyboard(),
-    )
-
-    await call.answer()
+        await call.answer()

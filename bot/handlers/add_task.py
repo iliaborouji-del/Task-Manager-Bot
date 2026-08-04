@@ -8,7 +8,7 @@ from bot.utils.datetime import (
     is_past,
 )
 from bot.database.categories import get_user_categories_for_task
-from bot.database.users import is_premium
+from bot.database.users import is_premium, is_admin
 from bot.keyboards.start import create_main_menu_keyboard
 from bot.states.add_task import AddTaskStates, Deadline
 from bot.keyboards.categories import create_categories_keyboard
@@ -35,8 +35,15 @@ router = Router()
 
 @router.message(StateFilter("*"), F.text == "لغو ❌")
 async def cancel(message: Message, state: FSMContext):
-    await state.clear()
-    await message.answer(text="لغو شد.", reply_markup=create_main_menu_keyboard())
+    async with session_scope() as session:
+        
+        await state.clear()
+        await message.answer(
+            text="لغو شد.",
+            reply_markup=create_main_menu_keyboard(
+                    is_admin=await is_admin(session, message.from_user.id)
+                )
+            )
 
 @router.message(F.text == "➕ اضافه کردن وظیفه")
 async def add_task_start(message: Message, state: FSMContext):
@@ -72,7 +79,9 @@ async def get_description(message: Message, state: FSMContext):
     if not categories:
         await message.answer(
             text="ابتدا باید حداقل یک دسته‌بندی بسازید.",
-            reply_markup=create_main_menu_keyboard()
+            reply_markup=create_main_menu_keyboard(
+                is_admin=is_admin(session, message.from_user.id)
+            )
         )
         await state.clear()
         return
@@ -238,6 +247,11 @@ async def get_status(message: Message, state: FSMContext):
             data=data
         )
         
-        await message.answer(SUCCESS, reply_markup=create_main_menu_keyboard())
+        await message.answer(
+            SUCCESS, 
+            reply_markup=create_main_menu_keyboard(
+                is_admin=is_admin(session, message.from_user.id)
+            )
+        )
         
         await state.clear()

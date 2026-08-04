@@ -1,4 +1,3 @@
-from aiogram.filters import StateFilter
 from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
@@ -7,6 +6,7 @@ from bot.database.connection import session_scope
 from bot.states.report import ReportState
 from bot.utils.datetime import jalali_string, jalali_date_string
 from bot.database.categories import get_all_categories
+from bot.database.users import is_admin
 from bot.keyboards.report import (
     create_report_keyboard,
     create_report_categories_keyboard,
@@ -29,13 +29,25 @@ router = Router()
 
 @router.message(ReportState.waiting_for_category, F.text == "بازگشت ↪️")
 async def return_to_menu(message: Message, state: FSMContext):
-    await state.clear()
-    await message.answer(text="منوی اصلی", reply_markup=create_main_menu_keyboard())
+    async with session_scope() as session:
+        await state.clear()
+        await message.answer(
+            text="منوی اصلی",
+            reply_markup=create_main_menu_keyboard(
+                is_admin=await is_admin(session, message.from_user.id)
+            )
+        )
 
 @router.message(ReportState.waiting_for_date_range, F.text == "بازگشت ↪️")
 async def return_to_menu(message: Message, state: FSMContext):
-    await state.clear()
-    await message.answer(text="منوی اصلی", reply_markup=create_main_menu_keyboard())
+    async with session_scope() as session:
+        await state.clear()
+        await message.answer(
+            text="منوی اصلی",
+            reply_markup=create_main_menu_keyboard(
+                is_admin=await is_admin(session, message.from_user.id)
+            )
+        )
 
 @router.message(F.text == "📢 گزارش وظایف")
 async def report_message(message: Message, state: FSMContext):

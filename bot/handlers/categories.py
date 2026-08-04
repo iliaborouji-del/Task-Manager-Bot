@@ -27,7 +27,7 @@ from bot.database.categories import (
     category_has_tasks,
     get_other_categories,
 )
-from bot.database.users import is_premium
+from bot.database.users import is_premium, is_admin
 
 router = Router()
 
@@ -267,6 +267,7 @@ async def back_to_categories(message: Message, state: FSMContext):
 @router.callback_query(F.data == "categories_back")
 async def categories_back(call: CallbackQuery, state: FSMContext):
     await state.clear()
+
     async with session_scope() as session:
         premium = await is_premium(
             session=session,
@@ -275,8 +276,16 @@ async def categories_back(call: CallbackQuery, state: FSMContext):
 
     await call.message.answer(
         text="مدیریت دسته ‌بندی‌ ها",
-        reply_markup=create_categories_menu(is_premium=premium)
+        reply_markup=create_categories_menu(
+            is_premium=premium
+        )
     )
+
+    await state.set_state(
+        CategoriesStates.waiting_for_choose
+    )
+
+    await call.answer()
 
 @router.message(CategoriesStates.selected_category, F.text == "🗑️ حذف")
 async def delete_category_start(message: Message, state: FSMContext):
@@ -389,4 +398,10 @@ async def move_tasks(call: CallbackQuery, state: FSMContext):
 @router.message(CategoriesStates.waiting_for_choose, F.text == "بازگشت ↪️")
 async def return_to_main_menu(message: Message, state: FSMContext):
     await state.clear()
-    await message.answer(text="منوی اصلی", reply_markup=create_main_menu_keyboard())
+    async with session_scope() as session:
+        await message.answer(
+            text="منوی اصلی", 
+            reply_markup=create_main_menu_keyboard(
+                is_admin=await is_admin(session, message.from_user.id)
+            )
+        )
